@@ -23,15 +23,15 @@ create_router1 () {
 
     # host1 configuraiton
     run ip netns exec host1 ip link set lo up
-    run ip netns exec host1 ip addr add 10.0.1.1 dev lo
-    run ip netns exec host1 ip addr add 172.0.1.1 dev veth-h1-rt1
+    run ip netns exec host1 ip addr add 10.0.1.1/24 dev lo
+    run ip netns exec host1 ip addr add 172.0.1.1/24 dev veth-h1-rt1
     run ip netns exec host1 ip link set veth-h1-rt1 up
-    run ip netns exec host1 ip route add 10.0.1.0/24 via 172.0.1.2
+    run ip netns exec host1 ip route add 10.0.2.0/24 via 172.0.1.2
 
     # router1 configuration
     run ip netns exec router1 ip link set lo up
     run ip netns exec router1 ip link set veth-rt1-h1 up
-    run ip netns exec router1 ip addr add 172.0.1.2 dev veth-rt1-h1
+    run ip netns exec router1 ip addr add 172.0.1.2/24 dev veth-rt1-h1
 
     # sysctl for router1
     ip netns exec router1 sysctl net.ipv6.conf.all.forwarding=1
@@ -66,14 +66,15 @@ create_router3 () {
     run ip netns exec host2 ip link set lo up
     run ip netns exec host2 ip link set veth-h2-rt3 up
     run ip netns exec host2 ip addr add 10.0.1.2/24 dev lo
-    run ip netns exec host2 ip addr add 172.0.2.2/24 dev veth-h2-rt3
-
+    run ip netns exec host2 ip addr add 172.0.2.1/24 dev veth-h2-rt3
     run ip netns exec host2 ip route add 10.0.1.0/24 via 172.0.2.2
+
+    # run ip netns exec host2 ip route add 10.0.1.0/24 via 172.0.2.2
 
     # router3 configuration
     run ip netns exec router3 ip link set lo up
     run ip netns exec router3 ip link set veth-rt3-h2 up
-    run ip netns exec router3 ip addr add 172.0.2.2 dev veth-rt3-h2
+    run ip netns exec router3 ip addr add 172.0.2.2/24 dev veth-rt3-h2
 
     # sysctl for router3
     ip netns exec router3 sysctl net.ipv6.conf.all.forwarding=1
@@ -95,7 +96,7 @@ connect_rt1_rt2 () {
     # configure router2
     run ip netns exec router2 ip link set veth-rt2-rt1 up
     run ip netns exec router2 ip addr add fc00:12::2/64 dev veth-rt2-rt1
-    run ip netns exec router2 ip -6 route add fc00:23::/64 via fc00:12::1
+    # run ip netns exec router2 ip -6 route add fc00:23::/64 via fc00:23::1
 }
 
 connect_rt2_rt3 () {
@@ -106,12 +107,12 @@ connect_rt2_rt3 () {
 
     # configure router2
     run ip netns exec router2 ip link set veth-rt2-rt3 up
-    run ip netns exec router2 ip addr add fc00:23::1/64 dev veth-rt2-rt3
-    run ip netns exec router2 ip -6 route add fc00:12::/64 via fc00:23::1
+    run ip netns exec router2 ip addr add fc00:23::2/64 dev veth-rt2-rt3
+    run ip netns exec router2 ip -6 route add fc00:12::/64 via fc00:12::1
 
     # configure router3
     run ip netns exec router3 ip link set veth-rt3-rt2 up
-    run ip netns exec router3 ip addr add fc00:23::2/64 dev veth-rt3-rt2
+    run ip netns exec router3 ip addr add fc00:23::1/64 dev veth-rt3-rt2
     run ip netns exec router3 ip -6 route add fc00:12::/64 via fc00:23::2
 }
 
