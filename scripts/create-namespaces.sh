@@ -37,6 +37,7 @@ create_router1 () {
     ip netns exec router1 sysctl net.ipv6.conf.all.forwarding=1
     ip netns exec router1 sysctl net.ipv6.conf.all.seg6_enabled=1
     ip netns exec router1 sysctl net.ipv4.conf.all.rp_filter=0
+    ip netns exec router2 sysctl net.ipv4.ip_forward=1
 }
 
 create_router2 () {
@@ -80,6 +81,7 @@ create_router3 () {
     ip netns exec router3 sysctl net.ipv6.conf.all.forwarding=1
     ip netns exec router3 sysctl net.ipv6.conf.all.seg6_enabled=1
     ip netns exec router3 sysctl net.ipv4.conf.all.rp_filter=0
+    ip netns exec router2 sysctl net.ipv4.ip_forward=1
 }
 
 connect_rt1_rt2 () {
@@ -96,7 +98,6 @@ connect_rt1_rt2 () {
     # configure router2
     run ip netns exec router2 ip link set veth-rt2-rt1 up
     run ip netns exec router2 ip addr add fc00:12::2/64 dev veth-rt2-rt1
-    # run ip netns exec router2 ip -6 route add fc00:23::/64 via fc00:23::1
 }
 
 connect_rt2_rt3 () {
@@ -128,6 +129,20 @@ destroy_network () {
 
 stop () {
     destroy_network
+}
+
+router1_srv6(){
+    ip route add 172.0.2.1/24 encap seg6 mode encap segs fc00:3::bb,fc00:5::bb dev eth1
+    ip -6 route add fc00:1::bb/128 encap seg6local action End.DX4 nh4 172.0.1.1 dev eth2
+}
+
+router2_srv6(){
+    ip -6 route add fc00:3::bb/128 encap seg6local action End dev eth1
+}
+
+router3_srv6(){
+    ip route add 10.0.1.0/24 encap seg6 mode encap segs fc00:3::bb,fc00:5::bb,fc00:4::bb dev eth1
+    ip -6 route add fc00:1::bb/128 encap seg6local action End.DX4 nh4 10.0.0.1 dev eth2
 }
 
 trap stop 0 1 2 3 13 14 15
