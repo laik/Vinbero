@@ -15,8 +15,9 @@ cd ./iproute2-4.20.0
 sudo make && sudo make install
 
 # enable gtp and install
+cd /
 sudo apt -y install libtalloc-dev libpcsclite-dev libmnl-dev autoconf libtool
-
+sudo ldconfig -v
 git clone git://git.osmocom.org/libgtpnl.git
 cd libgtpnl
 autoreconf -fi

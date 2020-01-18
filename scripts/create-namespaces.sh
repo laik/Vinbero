@@ -23,7 +23,7 @@ create_router1 () {
 
     # host1 configuraiton
     run ip netns exec host1 ip link set lo up
-    run ip netns exec host1 ip addr add 10.0.1.1/24 dev lo
+    run ip netns exec host1 ip addr add 10.0.1.1/32 dev lo
     run ip netns exec host1 ip addr add 172.0.1.1/24 dev veth-h1-rt1
     run ip netns exec host1 ip link set veth-h1-rt1 up
     run ip netns exec host1 ip route add 10.0.2.0/24 via 172.0.1.2
@@ -68,7 +68,7 @@ create_router3 () {
     # host2 configuraiton
     run ip netns exec host2 ip link set lo up
     run ip netns exec host2 ip link set veth-h2-rt3 up
-    run ip netns exec host2 ip addr add 10.0.1.2/24 dev lo
+    run ip netns exec host2 ip addr add 10.0.1.2/32 dev lo
     run ip netns exec host2 ip addr add 172.0.2.1/24 dev veth-h2-rt3
     run ip netns exec host2 ip route add 10.0.1.0/24 via 172.0.2.2
     run ip netns exec host2 ip route add 172.0.1.0/24 via 172.0.2.2
