@@ -3,7 +3,7 @@
 # install dependencies for building iproute2
 apt update
 DEBIAN_FRONTEND=noninteractive apt upgrade -y
-apt install -y bison flex clang llvm libelf-dev bc libssl-dev tmux
+apt install -y bison flex clang gcc llvm libelf-dev bc libssl-dev tmux trace-cmd linux-headers-`uname -r`
 
 # update iproute2
 sudo apt install -y pkg-config bison flex make gcc
@@ -27,3 +27,9 @@ sudo ldconfig
 
 sudo modprobe gtp
 lsmod | grep gtp
+
+
+cd /tmp
+git clone https://github.com/netgroup/SRv6-net-prog 
+cd SRv6-net-prog/srext/
+sudo make && sudo make install
