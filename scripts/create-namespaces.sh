@@ -124,7 +124,9 @@ connect_rt2_rt3 () {
     run ip netns exec router3 ip link set veth-rt3-rt2 up
     run ip netns exec router3 ip addr add fc00:23::1/64 dev veth-rt3-rt2
     run ip netns exec router3 ip -6 route add fc00:1::/64 via fc00:23::2
+    run ip netns exec router3 ip -6 route add fc00:2::/64 via fc00:23::2
     run ip netns exec router3 ip -6 route add fc00:12::/64 via fc00:23::2
+
 }
 
 destroy_network () {
