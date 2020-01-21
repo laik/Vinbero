@@ -74,7 +74,7 @@ struct bpf_map_def SEC("maps") transit_table_v4 = {
 
 struct bpf_map_def SEC("maps") function_table = {
     .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(u32),
+    .key_size = sizeof(struct in6_addr),
     .value_size = sizeof(struct end_function),
     .max_entries = MAX_END_FUNCTION_ENTRIES,
 };
@@ -308,7 +308,7 @@ int srv6_handler(struct xdp_md *xdp)
     }
 
     h_proto = eth->h_proto;
-    bpf_printk("srv6_handler start\n");
+    bpf_printk("srv6_handler L3 check\n");
     if (h_proto == htons(ETH_P_IP)) {
         // use encap
         // ef_table = bpf_map_lookup_elem(&function_table, &iph->daddr);
@@ -319,12 +319,17 @@ int srv6_handler(struct xdp_md *xdp)
         // checkSRv6
         if (v6h->nexthdr == NEXTHDR_ROUTING) {
             bpf_printk("match v6h->nexthdr == NEXTHDR_ROUTING)\n");
-            ef_table = bpf_map_lookup_elem(&function_table, &v6h->daddr);
+            ef_table = bpf_map_lookup_elem(&function_table, &(v6h->daddr));
             if (!ef_table) {
-                bpf_printk("not match ef_table");
+                int pt = 2;
+                bpf_printk("not match ef_table 1 %llu",v6h->daddr.s6_addr32[0]);
+                bpf_printk("not match ef_table 2 %llu",v6h->daddr.s6_addr32[1]);
+                bpf_printk("not match ef_table 3 %llu",v6h->daddr.s6_addr32[2]);
+                bpf_printk("not match ef_table 4 %llu",v6h->daddr.s6_addr32[3]);
+                bpf_map_update_elem(&function_table, &(v6h->daddr), &pt, BPF_ANY);
                 return XDP_PASS;
             }
-
+            bpf_printk("ef_table check %u",ef_table);
             switch (ef_table->function) {
             case SEG6_LOCAL_ACTION_END:
                 bpf_printk("run action_end\n");
@@ -336,6 +341,7 @@ int srv6_handler(struct xdp_md *xdp)
             // encap check condtion 
         }
     }
+    bpf_printk("no match all\n");
     return XDP_PASS;
 }
 

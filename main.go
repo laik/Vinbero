@@ -15,7 +15,6 @@ import (
 	"github.com/takehaya/srv6-gtp/version"
 	"github.com/takehaya/srv6-gtp/xdptool"
 	"github.com/takehaya/srv6-gtp/srv6"
-	"github.com/newtools/ebpf"
 
 	"gopkg.in/yaml.v2"
 )
@@ -90,19 +89,20 @@ func run() error {
 	// init
 	xdptool.PossibleCpuInit()
 
+	coll, err := xdptool.LoadElf(data.ElfFilepath)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	for _, dev := range data.Devices{
 		// Attach to interface
-		err = xdptool.Attach(data.ElfFilepath, data.ProgName, dev)
+		err = xdptool.Attach(coll, data.ProgName, dev)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		log.Println("attached device: %v", dev)
 	}	
 
-	coll, err := ebpf.LoadCollection(data.ElfFilepath)
-	if err != nil {
-		return errors.WithStack(err)
-	}
 	// match map
 	function_m, err := srv6.NewFunctionTable(coll)
 	if err != nil {
@@ -148,8 +148,17 @@ func run() error {
 			if addr == ""{
 				return errors.New(fmt.Sprintf("addr not found"))
 			}
+
+			// var big_convaddr [16]byte
+			// var litle_convaddr [16]byte
+			// copy(big_convaddr[:], net.ParseIP(addr).To16())
+			// for index, bit := range big_convaddr{
+			// 	litle_convaddr[16 - 1 - index] = bit
+			// }
+			
 			var convip [16]byte
 			copy(convip[:], net.ParseIP(addr).To16())
+			fmt.Println(convip)
 			err := function_m.Update(
 				srv6.FunctionTable{Function: fn_enum}, 
 				convip,
@@ -218,15 +227,15 @@ func run() error {
 	for {
 		select {
 		// case <-ticker.C:
-		// 	fmt.Println("IP DROPs")
-		// 	for i := 0; i < len(ipList); i++ {
-		// 		value, err := ma.Get(uint32(i))
-		// 		if err != nil {
-		// 			fmt.Printf("LookupInt failed: %v", err)
-		// 		}
-		// 		fmt.Printf("%18s    %d\n", ipList[i], value)
-		// 	}
-		// 	fmt.Println()
+			// fmt.Println("IP DROPs")
+			// for i := 0; i < len(ipList); i++ {
+			// 	value, err := ma.Get(uint32(i))
+			// 	if err != nil {
+			// 		fmt.Printf("LookupInt failed: %v", err)
+			// 	}
+			// 	fmt.Printf("%18s    %d\n", ipList[i], value)
+			// }
+			// fmt.Println()
 		case <-signalChan:
 			// TODO: change prepare priority elf->ebpfmap make -> xdp attach
 			for _, dev := range data.Devices{

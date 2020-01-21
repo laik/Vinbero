@@ -8,23 +8,27 @@ import (
 	"github.com/newtools/ebpf"
 )
 
-
-func Attach(filepath string, attach_func string, device string) error{
+func LoadElf(filepath string) (*ebpf.Collection, error){
 	f, err := os.Open(filepath)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	// Read ELF
 	spec, err := ebpf.LoadCollectionSpecFromReader(f)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	coll, err := ebpf.NewCollection(spec)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
+	return coll, nil
+}
+
+func Attach(coll *ebpf.Collection, attach_func string, device string) error{
+
 	prog, ok := coll.Programs[attach_func]
 	if !ok {
 		fmt.Println()
