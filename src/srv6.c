@@ -26,12 +26,12 @@
 #define SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D 2		
 #define SEG6_LOCAL_ACTION_T_M_GTP4_E 15
 
-struct args_mod_session{
-    u8 qfi : 6;
-    u8 r : 1;
-    u8 u : 1;
-    c pdu_session_id;
-}
+
+struct lookup_result {
+    u32 ifindex;
+    u8 smac[6];
+    u8 dmac[6];
+};
 
 struct transit_behavior {
     u32 segment_length;
@@ -50,10 +50,12 @@ struct gtp1hdr { /* According to 3GPP TS 29.060. */
     u32 tid;
 };
 
-struct lookup_result {
-    u32 ifindex;
-    u8 smac[6];
-    u8 dmac[6];
+// https://tools.ietf.org/html/draft-ietf-dmm-srv6-mobile-uplane-05#section-6.1
+struct args_mob_session{ 
+    u8 qfi : 6;
+    u8 r : 1;
+    u8 u : 1;
+    u32 pdu_session_id;
 };
 
 struct bpf_map_def SEC("maps") tx_port = {
@@ -274,10 +276,10 @@ static inline int action_end(struct xdp_md *xdp)
     struct ipv6hdr *v6h = get_ipv6(xdp);
 
     if (!srhdr || !v6h) {
-        return XDP_DROP;
+        return XDP_PASS;
     }
     if (advance_nextseg(srhdr, &v6h->daddr, xdp)) {
-        return XDP_DROP;
+        return XDP_PASS;
     }
 
     return rewrite_nexthop(xdp);
@@ -286,21 +288,27 @@ static inline int action_end(struct xdp_md *xdp)
 SEC("xdp_prog")
 int srv6_handler(struct xdp_md *xdp)
 {
+    bpf_printk("srv6_handler start");
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
     struct iphdr *iph = get_ipv4(xdp);
     struct ipv6hdr *v6h = get_ipv6(xdp);
-
     struct end_function *ef_table;
 
     u16 h_proto;
 
     if (data + sizeof(*eth) > data_end) {
+        bpf_printk("data_end 1\n");
+        return XDP_PASS;
+    }
+    if (!iph || !v6h) {
+        bpf_printk("data_end 2\n");
         return XDP_PASS;
     }
 
     h_proto = eth->h_proto;
+    bpf_printk("srv6_handler start\n");
     if (h_proto == htons(ETH_P_IP)) {
         // use encap
         // ef_table = bpf_map_lookup_elem(&function_table, &iph->daddr);
@@ -310,13 +318,16 @@ int srv6_handler(struct xdp_md *xdp)
         // use nexthop and exec to function or decap or encap
         // checkSRv6
         if (v6h->nexthdr == NEXTHDR_ROUTING) {
+            bpf_printk("match v6h->nexthdr == NEXTHDR_ROUTING)\n");
             ef_table = bpf_map_lookup_elem(&function_table, &v6h->daddr);
             if (!ef_table) {
+                bpf_printk("not match ef_table");
                 return XDP_PASS;
             }
 
             switch (ef_table->function) {
             case SEG6_LOCAL_ACTION_END:
+                bpf_printk("run action_end\n");
                 return action_end(xdp);
             }
         } else {
