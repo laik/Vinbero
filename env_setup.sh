@@ -3,7 +3,7 @@
 # install dependencies for building iproute2
 apt update
 DEBIAN_FRONTEND=noninteractive apt upgrade -y
-apt install -y bison flex clang gcc llvm libelf-dev bc libssl-dev tmux trace-cmd linux-headers-`uname -r`
+apt install -y bison flex clang-6.0 gcc llvm libelf-dev bc libssl-dev tmux trace-cmd linux-headers-`uname -r`
 
 # update iproute2
 sudo apt install -y pkg-config bison flex make gcc
@@ -15,7 +15,7 @@ cd ./iproute2-4.20.0
 sudo make && sudo make install
 
 # enable gtp and install
-cd /
+cd /home/vagrant
 sudo apt -y install libtalloc-dev libpcsclite-dev libmnl-dev autoconf libtool
 sudo ldconfig -v
 git clone git://git.osmocom.org/libgtpnl.git
@@ -25,12 +25,3 @@ autoreconf -fi
 make
 sudo make install
 sudo ldconfig
-
-sudo modprobe gtp
-lsmod | grep gtp
-
-
-cd /tmp
-git clone https://github.com/netgroup/SRv6-net-prog 
-cd SRv6-net-prog/srext/
-sudo make && sudo make install

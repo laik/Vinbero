@@ -26,9 +26,9 @@ ip netns exec host1 ip route add 10.0.1.2/32 dev gtp1
 
 # host2
 > Create gtp device 
-ip netns exec host1 modprobe udp_tunnel
-ip netns exec host1 modprobe ip6_udp_tunnel
-ip netns exec host1 modprobe gtp
+ip netns exec host2 modprobe udp_tunnel
+ip netns exec host2 modprobe ip6_udp_tunnel
+ip netns exec host2 modprobe gtp
 ip netns exec host2 ./gtp-link add gtp2 
 
 > Open a new console and configure tunnel (PDP session) 
