@@ -1,5 +1,5 @@
-#define KBUILD_MODNAME "xdp_srv6_functions"
-
+#define KBUILD_MODNAME "xdp_srv6_functions" 
+#include <stddef.h>
 #include <linux/bpf.h>
 #include <linux/in.h>
 #include <linux/if_ether.h>
@@ -7,17 +7,24 @@
 #include <linux/if_vlan.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
+#include <linux/socket.h>
 #include <linux/seg6.h>
 #include <linux/seg6_local.h>
-#include <linux/socket.h>
-#include <net/ipv6.h>
-#include "bpf_helpers.h" // for bpf_trace_printk, SEC, bpf_map_def
+#include <linux/udp.h>
+#include "bpf_helpers.h"
+#include "bpf_endian.h"
 
+// linux/socket.h
+#define AF_INET		2	/* Internet IP Protocol 	*/
+#define AF_INET6	10	/* IP version 6			*/
+
+// net/ipv6.h
+#define NEXTHDR_ROUTING		43	/* Routing header. */
 
 // #include "srv6_maps.h"
 // #include "srv6_structs.h"
 // #include "srv6_consts.h"
-#define IPV6_FLOWINFO_MASK cpu_to_be32(0x0FFFFFFF)
+#define IPV6_FLOWINFO_MASK __bpf_htonl(0x0FFFFFFF)
 #define MAX_TRANSIT_ENTRIES 256
 #define MAX_END_FUNCTION_ENTRIES 256
 #define MAX_SEGMENTS 5
@@ -26,27 +33,27 @@
 #define SEG6_LOCAL_ACTION_T_M_GTP4_E 15
 
 struct lookup_result {
-    u32 ifindex;
-    u8 smac[6];
-    u8 dmac[6];
+    __u32 ifindex;
+    __u8 smac[6];
+    __u8 dmac[6];
 };
 
 struct transit_behavior {
-    u8 action;
-    u32 segment_length;
+    __u8 action;
+    __u32 segment_length;
     struct in6_addr saddr;
     struct in6_addr segments[MAX_SEGMENTS];
 };
 
 struct end_function {
-    u8 function;
+    __u8 function;
 };
 
 struct gtp1hdr { /* According to 3GPP TS 29.060. */
-    u8 flags;
-    u8 type;
-    u16 length;
-    u32 tid;
+    __u8 flags;
+    __u8 type;
+    __u16 length;
+    __u32 tid;
     //u16 seqNum;
 };
 #define ECHO_REQUEST 0x01
@@ -56,10 +63,10 @@ struct gtp1hdr { /* According to 3GPP TS 29.060. */
 
 // https://tools.ietf.org/html/draft-ietf-dmm-srv6-mobile-uplane-05#section-6.1
 struct args_mob_session{ 
-    u8 qfi : 6;
-    u8 r : 1;
-    u8 u : 1;
-    u32 pdu_session_id;
+    __u8 qfi : 6;
+    __u8 r : 1;
+    __u8 u : 1;
+    __u32 pdu_session_id;
 };
 
 struct bpf_map_def SEC("maps") tx_port = {
@@ -71,7 +78,7 @@ struct bpf_map_def SEC("maps") tx_port = {
 
 struct bpf_map_def SEC("maps") transit_table_v4 = {
     .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(u32),
+    .key_size = sizeof(__u32),
     .value_size = sizeof(struct transit_behavior),
     .max_entries = MAX_TRANSIT_ENTRIES,
 };
@@ -193,18 +200,18 @@ static inline struct lookup_result lookup_nexthop(struct xdp_md *xdp)
     struct bpf_fib_lookup fib_params;
 
     struct lookup_result result = {};
-    u16 h_proto;
+    __u16 h_proto;
 
     if (data + sizeof(struct ethhdr) > data_end || !v6h || !iph) {
-        memset(result.dmac, 0, sizeof(u8) * ETH_ALEN);
+        __builtin_memset(result.dmac, 0, sizeof(__u8) * ETH_ALEN);
         return result;
     }
 
     h_proto = eth->h_proto;
 
-    memset(&fib_params, 0, sizeof(fib_params));
+    __builtin_memset(&fib_params, 0, sizeof(fib_params));
 
-    if (h_proto == htons(ETH_P_IPV6)) {
+    if (h_proto == bpf_htons(ETH_P_IPV6)) {
         struct in6_addr *src = (struct in6_addr *)fib_params.ipv6_src;
         struct in6_addr *dst = (struct in6_addr *)fib_params.ipv6_dst;
         // bpf_fib_lookup
@@ -216,20 +223,20 @@ static inline struct lookup_result lookup_nexthop(struct xdp_md *xdp)
         fib_params.l4_protocol = v6h->nexthdr;
         fib_params.sport = 0;
         fib_params.dport = 0;
-        fib_params.tot_len = ntohs(v6h->payload_len);
+        fib_params.tot_len = bpf_ntohs(v6h->payload_len);
         *src = v6h->saddr;
         *dst = v6h->daddr;
-    } else if (h_proto == htons(ETH_P_IP)) {
+    } else if (h_proto == bpf_htons(ETH_P_IP)) {
         fib_params.family = AF_INET;
         fib_params.tos = iph->tos;
         fib_params.l4_protocol = iph->protocol;
         fib_params.sport = 0;
         fib_params.dport = 0;
-        fib_params.tot_len = ntohs(iph->tot_len);
+        fib_params.tot_len = bpf_ntohs(iph->tot_len);
         fib_params.ipv4_src = iph->saddr;
         fib_params.ipv4_dst = iph->daddr;
     } else {
-        memset(result.dmac, 0, sizeof(u8) * ETH_ALEN);
+        __builtin_memset(result.dmac, 0, sizeof(__u8) * ETH_ALEN);
         return result;
     }
 
@@ -238,12 +245,12 @@ static inline struct lookup_result lookup_nexthop(struct xdp_md *xdp)
     int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
 
     if (rc != 0) {
-        memset(result.dmac, 0, sizeof(u8) * ETH_ALEN);
+        __builtin_memset(result.dmac, 0, sizeof(__u8) * ETH_ALEN);
         return result;
     }
     result.ifindex = fib_params.ifindex;
-    memcpy(result.dmac, fib_params.dmac, ETH_ALEN);
-    memcpy(result.smac, fib_params.smac, ETH_ALEN);
+    __builtin_memcpy(result.dmac, fib_params.dmac, ETH_ALEN);
+    __builtin_memcpy(result.smac, fib_params.smac, ETH_ALEN);
     return result;
 }
 
@@ -259,8 +266,8 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
 
     struct lookup_result result = lookup_nexthop(xdp);
     if (check_lookup_result(&result)) {
-        memcpy(eth->h_dest, result.dmac, ETH_ALEN);
-        memcpy(eth->h_source, result.smac, ETH_ALEN);
+        __builtin_memcpy(eth->h_dest, result.dmac, ETH_ALEN);
+        __builtin_memcpy(eth->h_source, result.smac, ETH_ALEN);
         if (xdp->ingress_ifindex == result.ifindex) {
             return XDP_TX;
         }
@@ -296,13 +303,13 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct iphdr *iph = get_ipv4(xdp);
-    u8 type;
-    u32 tid;
-    u16 seqNum;
+    __u8 type;
+    __u32 tid;
+    __u16 seqNum;
     if (!iph) {
         return XDP_PASS;
     }
-    u16 inner_len = ntohs(iph->tot_len);
+    __u16 inner_len = bpf_ntohs(iph->tot_len);
 
     // Check protocol
     if (iph->protocol != IPPROTO_UDP) {
@@ -327,7 +334,7 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     //new seg6 headers
     struct ipv6hdr *hdr;
     struct ipv6_sr_hdr *srh;
-    u8 srh_len;
+    __u8 srh_len;
 
     if (tb->segment_length > MAX_SEGMENTS) {
         return XDP_DROP;
@@ -352,9 +359,9 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     if((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end) {
         return XDP_DROP;
     }
-    memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
-    memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
-    new_eth->h_proto = htons(ETH_P_IPV6);
+    __builtin_memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
+    __builtin_memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
+    new_eth->h_proto = bpf_htons(ETH_P_IPV6);
 
     // outer IPv6 header
     hdr = (void *)data + sizeof(struct ethhdr);
@@ -365,12 +372,12 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     hdr->priority = 0;
     hdr->nexthdr = NEXTHDR_ROUTING;
     hdr->hop_limit = 64;
-    hdr->payload_len = htons(srh_len + inner_len);
-    memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
+    hdr->payload_len = bpf_htons(srh_len + inner_len);
+    __builtin_memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
     if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS) {
         return XDP_DROP;
     }
-    memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
+    __builtin_memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
 
     srh = (void *)hdr + sizeof(struct ipv6hdr);
     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr)) > data_end) {
@@ -394,7 +401,7 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
         if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
             return XDP_DROP;
         }
-        memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
+        __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
     }
 
     return rewrite_nexthop(xdp);
@@ -413,7 +420,7 @@ int srv6_handler(struct xdp_md *xdp)
     struct end_function *ef_table;
     struct transit_behavior *tb;
 
-    u16 h_proto;
+    __u16 h_proto;
 
     if (data + sizeof(*eth) > data_end) {
         bpf_printk("data_end 1\n");
@@ -426,7 +433,7 @@ int srv6_handler(struct xdp_md *xdp)
 
     h_proto = eth->h_proto;
     bpf_printk("srv6_handler L3 check\n");
-    if (h_proto == htons(ETH_P_IP)) {
+    if (h_proto == bpf_htons(ETH_P_IP)) {
         // use encap
         tb = bpf_map_lookup_elem(&transit_table_v4, &iph->daddr);
         if(!tb){
@@ -437,7 +444,7 @@ int srv6_handler(struct xdp_md *xdp)
             }
         }
 
-    } else if (h_proto == htons(ETH_P_IPV6)) {
+    } else if (h_proto == bpf_htons(ETH_P_IPV6)) {
         // use nexthop and exec to function or decap or encap
         // checkSRv6
         if (v6h->nexthdr == NEXTHDR_ROUTING) {
