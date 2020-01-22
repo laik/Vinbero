@@ -192,6 +192,7 @@ func run() error {
 				newsegments = append(newsegments, segmentaddr)
 			}
 			l := len(newsegments)
+			log.Println("seg len", l)
 			if srv6.MAX_SEGMENTS < l {
 				return errors.New(fmt.Sprintf("Max Segments Entry over. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
 			}
@@ -202,6 +203,7 @@ func run() error {
 
 			err := v4table_m.Update(
 				srv6.TransitTablev4{
+					Action: encap_enum,
 					Segment_length: uint32(l),
 					Saddr: convSaddr,
 					Segments: newsegments,

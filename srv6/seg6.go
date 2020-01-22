@@ -54,7 +54,7 @@ func SEG6EncapModeString(mode int) string {
 	return "unknown"
 }
 
-func SEG6EncapModeInt(name string) int {
+func SEG6EncapModeInt(name string) uint8 {
 	switch name {
 	case "SEG6_IPTUN_MODE_INLINE":
 		return SEG6_IPTUN_MODE_INLINE

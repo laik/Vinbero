@@ -21,6 +21,7 @@ type TransitTablev4Key struct {
 }
 
 type TransitTablev4 struct {
+	Action	   	   uint8
 	Segment_length uint32
 	Saddr		   [16]byte
 	Segments	   [][16]byte
