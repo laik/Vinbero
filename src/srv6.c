@@ -180,10 +180,12 @@ static inline int advance_nextseg(struct ipv6_sr_hdr *srh, struct in6_addr *dadd
     void *data_end = (void *)(long)xdp->data_end;
 
     srh->segments_left--;
-    if ((void *)(long)srh + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (srh->segments_left + 1) > data_end) {
+    if ((void *)(long)srh + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) + (srh->segments_left + 1) > data_end) {
         return 0;
     }
     addr = srh->segments + srh->segments_left;
+	if (addr + 1 > data_end)
+		return 0;
     *daddr = *addr;
     return 1;
 }
