@@ -274,12 +274,13 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
 
     fib_params.ifindex = xdp->ingress_ifindex;
 
-    rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
+    rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT);
 
     if (!rc) {
         __builtin_memset(dmac, 0, ETH_ALEN);
         return;
     }
+    bpf_printk("fib_lookup success");
     *ifindex = fib_params.ifindex;
     __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
     __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
@@ -297,7 +298,6 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
     }
 
     // struct lookup_result result = {};
-    bpf_printk("lookup_result mem set\n");
     __u32 ifindex;
     unsigned short smac;
     unsigned short dmac;
