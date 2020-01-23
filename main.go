@@ -186,13 +186,15 @@ func run() error {
 				return errors.New(fmt.Sprintf("addr not found"))
 			}
 
-			var newsegments [][16]byte
-			for _, seg := range segments{
+			var newsegments [srv6.MAX_SEGMENTS][16]byte
+			for i, seg := range segments{
 				var segmentaddr [16]byte
 				copy(segmentaddr[:], net.ParseIP(seg).To16())
-				newsegments = append(newsegments, segmentaddr)
+				log.Println("segments addr", i, segmentaddr)
+
+				newsegments[i] = segmentaddr
 			}
-			l := len(newsegments)
+			l := len(segments)
 			log.Println("seg len", l)
 			if srv6.MAX_SEGMENTS < l {
 				return errors.New(fmt.Sprintf("Max Segments Entry over. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
