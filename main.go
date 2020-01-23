@@ -178,6 +178,7 @@ func run() error {
 			segments := tran.Segments
 
 			encap_enum := srv6.SEG6EncapModeInt(action)
+			log.Println("encap_enum", encap_enum)
 			if srv6.SEG6_IPTUN_MODE_MAX == encap_enum{
 				return errors.New(fmt.Sprintf("%v not found", action))
 			}
