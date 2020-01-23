@@ -301,8 +301,8 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
     __u32 ifindex;
     unsigned short smac;
     unsigned short dmac;
-    __builtin_memset(&smac, 0, ETH_ALEN);
-    __builtin_memset(&dmac, 0, ETH_ALEN);
+    __builtin_memset(&smac, 0, 2);
+    __builtin_memset(&dmac, 0, 2);
 
     lookup_nexthop(xdp, &smac, &dmac, &ifindex);
     // bpf_printk("check_lookup_result\n");
@@ -448,9 +448,9 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
         if (tb->segment_length == i-1){
             // todo :: convation ipv6 addr
         }
-        if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
+		if ((void *)(&srh->segments[i] + sizeof(struct in6_addr) + 1) > data_end)
             return XDP_PASS;
-        }
+
         __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
     }
 
