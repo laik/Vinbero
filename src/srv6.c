@@ -90,10 +90,10 @@ struct bpf_map_def SEC("maps") function_table = {
     .max_entries = MAX_END_FUNCTION_ENTRIES,
 };
 
-static inline int check_lookup_result(struct lookup_result *result)
+static inline int check_lookup_result(struct lookup_result result)
 {
-    if (result->dmac[0] == 0 || result->dmac[1] == 0 || result->dmac[2] == 0 || result->dmac[3] == 0 || result->dmac[4] == 0 ||
-        result->dmac[5] == 0) {
+    if (result.dmac[0] == 0 || result.dmac[1] == 0 || result.dmac[2] == 0 || result.dmac[3] == 0 || result.dmac[4] == 0 ||
+        result.dmac[5] == 0) {
         return 0;
     }
     return 1;
@@ -266,8 +266,11 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
         return XDP_PASS;
     }
 
-    struct lookup_result result = lookup_nexthop(xdp);
-    if (check_lookup_result(&result)) {
+    struct lookup_result result;
+    __builtin_memset(&result, 0, sizeof(result));
+
+    lookup_nexthop(xdp);
+    if (check_lookup_result(result)) {
         __builtin_memcpy(eth->h_dest, result.dmac, ETH_ALEN);
         __builtin_memcpy(eth->h_source, result.smac, ETH_ALEN);
         if (xdp->ingress_ifindex == result.ifindex) {
@@ -311,17 +314,17 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     if (!iph) {
         return XDP_PASS;
     }
-    __u16 inner_len = bpf_ntohs(iph->tot_len);
+    // __u16 inner_len = bpf_ntohs(iph->tot_len);
 
-    // Check protocol
-    if (iph->protocol != IPPROTO_UDP) {
-        return XDP_PASS;
-    }
-    struct gtp1hdr *gtp1h = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
+    // // Check protocol
+    // if (iph->protocol != IPPROTO_UDP) {
+    //     return XDP_PASS;
+    // }
+    // struct gtp1hdr *gtp1h = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
 
-    if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr) > data_end) {
-        return XDP_PASS;
-    }
+    // if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr) > data_end) {
+    //     return XDP_PASS;
+    // }
 
     // tid = gtp1h->tid;
     // type = gtp1h -> type;
@@ -334,77 +337,77 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     // }
     
     //new seg6 headers
-    struct ipv6hdr *hdr;
-    struct ipv6_sr_hdr *srh;
-    __u8 srh_len;
+    // struct ipv6hdr *hdr;
+    // struct ipv6_sr_hdr *srh;
+    // __u8 srh_len;
 
-    if (tb->segment_length > MAX_SEGMENTS) {
-        return XDP_DROP;
-    }
-    srh_len = sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * tb->segment_length;
-    if(bpf_xdp_adjust_head(xdp, 0 - (int)(sizeof(struct ipv6hdr) + srh_len))) {
-        return XDP_PASS;
-    }
-    data = (void *)(long)xdp->data;
-    data_end = (void *)(long)xdp->data_end;
+    // if (tb->segment_length > MAX_SEGMENTS) {
+    //     return XDP_DROP;
+    // }
+    // srh_len = sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * tb->segment_length;
+    // if(bpf_xdp_adjust_head(xdp, 0 - (int)(sizeof(struct ipv6hdr) + srh_len))) {
+    //     return XDP_PASS;
+    // }
+    // data = (void *)(long)xdp->data;
+    // data_end = (void *)(long)xdp->data_end;
 
-    if (!iph) {
-        return XDP_PASS;
-    }
+    // if (!iph) {
+    //     return XDP_PASS;
+    // }
     
-    struct ethhdr *old_eth, *new_eth;
-    new_eth= (void *)data;
-    old_eth = (void *)(data + sizeof(struct ipv6hdr) + srh_len);
-    if ((void *)((long)old_eth + sizeof(struct ethhdr)) > data_end) {
-        return XDP_DROP;
-    }
-    if((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end) {
-        return XDP_DROP;
-    }
-    __builtin_memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
-    __builtin_memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
-    new_eth->h_proto = bpf_htons(ETH_P_IPV6);
+    // struct ethhdr *old_eth, *new_eth;
+    // new_eth= (void *)data;
+    // old_eth = (void *)(data + sizeof(struct ipv6hdr) + srh_len);
+    // if ((void *)((long)old_eth + sizeof(struct ethhdr)) > data_end) {
+    //     return XDP_DROP;
+    // }
+    // if((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end) {
+    //     return XDP_DROP;
+    // }
+    // __builtin_memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
+    // __builtin_memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
+    // new_eth->h_proto = bpf_htons(ETH_P_IPV6);
 
-    // outer IPv6 header
-    hdr = (void *)data + sizeof(struct ethhdr);
-    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end) {
-        return XDP_DROP;
-    }
-    hdr->version = 6;
-    hdr->priority = 0;
-    hdr->nexthdr = NEXTHDR_ROUTING;
-    hdr->hop_limit = 64;
-    hdr->payload_len = bpf_htons(srh_len + inner_len);
-    __builtin_memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
-    if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS) {
-        return XDP_DROP;
-    }
-    __builtin_memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
+    // // outer IPv6 header
+    // hdr = (void *)data + sizeof(struct ethhdr);
+    // if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end) {
+    //     return XDP_DROP;
+    // }
+    // hdr->version = 6;
+    // hdr->priority = 0;
+    // hdr->nexthdr = NEXTHDR_ROUTING;
+    // hdr->hop_limit = 64;
+    // hdr->payload_len = bpf_htons(srh_len + inner_len);
+    // __builtin_memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
+    // if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS) {
+    //     return XDP_DROP;
+    // }
+    // __builtin_memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
 
-    srh = (void *)hdr + sizeof(struct ipv6hdr);
-    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr)) > data_end) {
-        return XDP_DROP;
-    }
-    srh->nexthdr = IPPROTO_IPIP;
-    srh->hdrlen = (srh_len / 8 - 1);
-    srh->type = 4;
-    srh->segments_left = tb->segment_length - 1;
-    srh->first_segment = tb->segment_length - 1;
-    srh->flags = 0;
+    // srh = (void *)hdr + sizeof(struct ipv6hdr);
+    // if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr)) > data_end) {
+    //     return XDP_DROP;
+    // }
+    // srh->nexthdr = IPPROTO_IPIP;
+    // srh->hdrlen = (srh_len / 8 - 1);
+    // srh->type = 4;
+    // srh->segments_left = tb->segment_length - 1;
+    // srh->first_segment = tb->segment_length - 1;
+    // srh->flags = 0;
 
-    #pragma clang loop unroll(full)
-    for (int i = 0; i < MAX_SEGMENTS; i++) {
-        if (tb->segment_length <= i) {
-            break;
-        }
-        if (tb->segment_length == i-1){
-            // todo :: convation ipv6 addr
-        }
-        if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
-            return XDP_DROP;
-        }
-        __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
-    }
+    // #pragma clang loop unroll(full)
+    // for (int i = 0; i < MAX_SEGMENTS; i++) {
+    //     if (tb->segment_length <= i) {
+    //         break;
+    //     }
+    //     if (tb->segment_length == i-1){
+    //         // todo :: convation ipv6 addr
+    //     }
+    //     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
+    //         return XDP_DROP;
+    //     }
+    //     __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
+    // }
 
     return rewrite_nexthop(xdp);
 }
@@ -438,7 +441,8 @@ int srv6_handler(struct xdp_md *xdp)
     if (h_proto == bpf_htons(ETH_P_IP)) {
         // use encap
         tb = bpf_map_lookup_elem(&transit_table_v4, &iph->daddr);
-        if(!tb){
+        if(tb){
+            bpf_printk("srv6_handler L3 check\n");
             switch (tb->action) {
                 case SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D:
                     bpf_printk("run SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D\n");
