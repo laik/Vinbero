@@ -501,21 +501,15 @@ int srv6_handler(struct xdp_md *xdp)
         if (v6h->nexthdr == NEXTHDR_ROUTING) {
             bpf_printk("match v6h->nexthdr == NEXTHDR_ROUTING)\n");
             ef_table = bpf_map_lookup_elem(&function_table, &(v6h->daddr));
-            if (!ef_table) {
-                int pt = 2;
-                bpf_printk("not match ef_table 1 %llu",v6h->daddr.s6_addr32[0]);
-                bpf_printk("not match ef_table 2 %llu",v6h->daddr.s6_addr32[1]);
-                bpf_printk("not match ef_table 3 %llu",v6h->daddr.s6_addr32[2]);
-                bpf_printk("not match ef_table 4 %llu",v6h->daddr.s6_addr32[3]);
-                bpf_map_update_elem(&function_table, &(v6h->daddr), &pt, BPF_ANY);
-                return XDP_PASS;
+            if (ef_table) {
+                bpf_printk("ef_table check %u",ef_table);
+                switch (ef_table->function) {
+                    case SEG6_LOCAL_ACTION_END:
+                        bpf_printk("run action_end\n");
+                        return action_end(xdp);
+                }
             }
-            bpf_printk("ef_table check %u",ef_table);
-            switch (ef_table->function) {
-                case SEG6_LOCAL_ACTION_END:
-                    bpf_printk("run action_end\n");
-                    return action_end(xdp);
-            }
+
         } else {
             // todo::
             // encap type code
