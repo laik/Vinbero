@@ -220,21 +220,35 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
     // struct lookup_result result;
     // __builtin_memset(&result, 0, sizeof(result));
     __u16 h_proto;
-
-    if (!v6h || !iph) {
-        __builtin_memset(dmac, 0, ETH_ALEN);
-        return;
-    }
+    int rc;
 
     if (data + sizeof(struct ethhdr) > data_end) {
         __builtin_memset(dmac, 0, ETH_ALEN);
         return;
     }
     h_proto = eth->h_proto;
-
     __builtin_memset(&fib_params, 0, sizeof(fib_params));
 
-    if (h_proto == bpf_htons(ETH_P_IPV6)) {
+    if (h_proto == bpf_htons(ETH_P_IP)) {
+
+        if (!iph) {
+            __builtin_memset(dmac, 0, ETH_ALEN);
+            return;
+        }
+        fib_params.family = AF_INET;
+        fib_params.tos = iph->tos;
+        fib_params.l4_protocol = iph->protocol;
+        fib_params.sport = 0;
+        fib_params.dport = 0;
+        fib_params.tot_len = bpf_ntohs(iph->tot_len);
+        fib_params.ipv4_src = iph->saddr;
+        fib_params.ipv4_dst = iph->daddr;
+    } else if (h_proto == bpf_htons(ETH_P_IPV6)) {
+
+        if (!v6h) {
+            __builtin_memset(dmac, 0, ETH_ALEN);
+            return;
+        }
         struct in6_addr *src = (struct in6_addr *)fib_params.ipv6_src;
         struct in6_addr *dst = (struct in6_addr *)fib_params.ipv6_dst;
         // bpf_fib_lookup
@@ -253,31 +267,22 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
         fib_params.tot_len = bpf_ntohs(v6h->payload_len);
         *src = v6h->saddr;
         *dst = v6h->daddr;
-    }else if (h_proto == bpf_htons(ETH_P_IP)) {
-        fib_params.family = AF_INET;
-        fib_params.tos = iph->tos;
-        fib_params.l4_protocol = iph->protocol;
-        fib_params.sport = 0;
-        fib_params.dport = 0;
-        fib_params.tot_len = bpf_ntohs(iph->tot_len);
-        fib_params.ipv4_src = iph->saddr;
-        fib_params.ipv4_dst = iph->daddr;
-    } else {
+    }else {
         __builtin_memset(dmac, 0, sizeof(__u8) * ETH_ALEN);
         return;
     }
 
     fib_params.ifindex = xdp->ingress_ifindex;
 
-    int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
+    rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
 
-    if (rc != 0) {
-        __builtin_memset(dmac, 0, ETH_ALEN);
+    if (rc == BPF_FIB_LKUP_RET_SUCCESS) {
+        *ifindex = fib_params.ifindex;
+        __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
+        __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
         return;
     }
-    *ifindex = fib_params.ifindex;
-    __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
-    __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
+    __builtin_memset(dmac, 0, ETH_ALEN);
     return;
 }
 
@@ -294,16 +299,18 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
     // struct lookup_result result = {};
     bpf_printk("lookup_result mem set\n");
     __u32 ifindex;
-    __u8 smac[6];
-    __u8 dmac[6];
+    unsigned short smac;
+    unsigned short dmac;
+    __builtin_memset(&smac, 0, ETH_ALEN);
+    __builtin_memset(&dmac, 0, ETH_ALEN);
 
     lookup_nexthop(xdp, &smac, &dmac, &ifindex);
     // bpf_printk("check_lookup_result\n");
     if (check_lookup_result(&dmac)) {
         // bpf_printk("check_lookup_result match\n");
-        set_src_dst_mac(data, smac, dmac);
-        __builtin_memcpy(eth->h_dest, dmac, ETH_ALEN);
-        __builtin_memcpy(eth->h_source, smac, ETH_ALEN);
+        set_src_dst_mac(data, &smac, &dmac);
+        // __builtin_memcpy(eth->h_dest, dmac, ETH_ALEN);
+        // __builtin_memcpy(eth->h_source, smac, ETH_ALEN);
         if (xdp->ingress_ifindex == ifindex) {
             bpf_printk("select TX\n");
             return XDP_TX;
