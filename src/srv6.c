@@ -348,25 +348,25 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     // chack UDP/GTP packet
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
-    // struct iphdr *iph = get_ipv4(xdp);
-    // __u8 type;
-    // __u32 tid;
-    // __u16 seqNum;
-    // if (!iph) {
-    //     return XDP_PASS;
-    // }
-    // __u16 inner_len = bpf_ntohs(iph->tot_len);
+    struct iphdr *iph = get_ipv4(xdp);
+    __u8 type;
+    __u32 tid;
+    __u16 seqNum;
+    if (!iph) {
+        return XDP_PASS;
+    }
+    __u16 inner_len = bpf_ntohs(iph->tot_len);
 
-    // // Check protocol
-    // bpf_printk("Check protocol\n");
-    // if (iph->protocol != IPPROTO_UDP) {
-    //     return XDP_PASS;
-    // }
-    // struct gtp1hdr *gtp1h = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
+    // Check protocol
+    bpf_printk("Check protocol\n");
+    if (iph->protocol != IPPROTO_UDP) {
+        return XDP_PASS;
+    }
+    struct gtp1hdr *gtp1h = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
 
-    // if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr) > data_end) {
-    //     return XDP_PASS;
-    // }
+    if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr) > data_end) {
+        return XDP_PASS;
+    }
 
     // tid = gtp1h->tid;
     // type = gtp1h -> type;
@@ -379,80 +379,80 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
     // }
     
     // new seg6 headers
-    // struct ipv6hdr *hdr;
-    // struct ipv6_sr_hdr *srh;
-    // __u8 srh_len;
-    // bpf_printk("new seg6 headers start\n");
+    struct ipv6hdr *hdr;
+    struct ipv6_sr_hdr *srh;
+    __u8 srh_len;
+    bpf_printk("new seg6 headers start\n");
 
-    // if (tb->segment_length > MAX_SEGMENTS) {
-    //     return XDP_PASS;
-    // }
-    // srh_len = sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * tb->segment_length;
-    // if(bpf_xdp_adjust_head(xdp, 0 - (int)(sizeof(struct ipv6hdr) + srh_len))) {
-    //     return XDP_PASS;
-    // }
-    // data = (void *)(long)xdp->data;
-    // data_end = (void *)(long)xdp->data_end;
+    if (tb->segment_length > MAX_SEGMENTS) {
+        return XDP_PASS;
+    }
+    srh_len = sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * tb->segment_length;
+    if(bpf_xdp_adjust_head(xdp, 0 - (int)(sizeof(struct ipv6hdr) + srh_len))) {
+        return XDP_PASS;
+    }
+    data = (void *)(long)xdp->data;
+    data_end = (void *)(long)xdp->data_end;
 
-    // if (!iph) {
-    //     return XDP_PASS;
-    // }
-    // bpf_printk("new seg6 make hdr\n");
-    // struct ethhdr *old_eth, *new_eth;
-    // new_eth= (void *)data;
-    // old_eth = (void *)(data + sizeof(struct ipv6hdr) + srh_len);
-    // if ((void *)((long)old_eth + sizeof(struct ethhdr)) > data_end) {
-    //     return XDP_PASS;
-    // }
-    // if((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end) {
-    //     return XDP_PASS;
-    // }
-    // __builtin_memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
-    // __builtin_memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
-    // new_eth->h_proto = bpf_htons(ETH_P_IPV6);
+    if (!iph) {
+        return XDP_PASS;
+    }
+    bpf_printk("new seg6 make hdr\n");
+    struct ethhdr *old_eth, *new_eth;
+    new_eth= (void *)data;
+    old_eth = (void *)(data + sizeof(struct ipv6hdr) + srh_len);
+    if ((void *)((long)old_eth + sizeof(struct ethhdr)) > data_end) {
+        return XDP_PASS;
+    }
+    if((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end) {
+        return XDP_PASS;
+    }
+    __builtin_memcpy(&new_eth->h_source, &old_eth->h_dest, sizeof(unsigned char) * ETH_ALEN);
+    __builtin_memcpy(&new_eth->h_dest, &old_eth->h_source, sizeof(unsigned char) * ETH_ALEN);
+    new_eth->h_proto = bpf_htons(ETH_P_IPV6);
 
-    // // outer IPv6 header
-    // bpf_printk("outer IPv6 header\n");
-    // hdr = (void *)data + sizeof(struct ethhdr);
-    // if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end) {
-    //     return XDP_PASS;
-    // }
-    // hdr->version = 6;
-    // hdr->priority = 0;
-    // hdr->nexthdr = NEXTHDR_ROUTING;
-    // hdr->hop_limit = 64;
-    // hdr->payload_len = bpf_htons(srh_len + inner_len);
-    // __builtin_memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
-    // if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS) {
-    //     return XDP_PASS;
-    // }
-    // __builtin_memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
+    // outer IPv6 header
+    bpf_printk("outer IPv6 header\n");
+    hdr = (void *)data + sizeof(struct ethhdr);
+    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end) {
+        return XDP_PASS;
+    }
+    hdr->version = 6;
+    hdr->priority = 0;
+    hdr->nexthdr = NEXTHDR_ROUTING;
+    hdr->hop_limit = 64;
+    hdr->payload_len = bpf_htons(srh_len + inner_len);
+    __builtin_memcpy(&hdr->saddr, &tb->saddr, sizeof(struct in6_addr));
+    if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS) {
+        return XDP_PASS;
+    }
+    __builtin_memcpy(&hdr->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
 
-    // srh = (void *)hdr + sizeof(struct ipv6hdr);
-    // if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr)) > data_end) {
-    //     return XDP_PASS;
-    // }
-    // srh->nexthdr = IPPROTO_IPIP;
-    // srh->hdrlen = (srh_len / 8 - 1);
-    // srh->type = 4;
-    // srh->segments_left = tb->segment_length - 1;
-    // srh->first_segment = tb->segment_length - 1;
-    // srh->flags = 0;
+    srh = (void *)hdr + sizeof(struct ipv6hdr);
+    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr)) > data_end) {
+        return XDP_PASS;
+    }
+    srh->nexthdr = IPPROTO_IPIP;
+    srh->hdrlen = (srh_len / 8 - 1);
+    srh->type = 4;
+    srh->segments_left = tb->segment_length - 1;
+    srh->first_segment = tb->segment_length - 1;
+    srh->flags = 0;
 
-    // bpf_printk("loop write\n");
-    // #pragma clang loop unroll(disable)
-    // for (int i = 0; i < MAX_SEGMENTS; i++) {
-    //     if (tb->segment_length <= i) {
-    //         break;
-    //     }
-    //     if (tb->segment_length == i-1){
-    //         // todo :: convation ipv6 addr
-    //     }
-    //     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
-    //         return XDP_PASS;
-    //     }
-    //     __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
-    // }
+    bpf_printk("loop write\n");
+    #pragma clang loop unroll(full)
+    for (int i = 0; i < MAX_SEGMENTS; i++) {
+        if (tb->segment_length <= i) {
+            break;
+        }
+        if (tb->segment_length == i-1){
+            // todo :: convation ipv6 addr
+        }
+        if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (i + 1)) > data_end) {
+            return XDP_PASS;
+        }
+        __builtin_memcpy(&srh->segments[i], &tb->segments[i], sizeof(struct in6_addr));
+    }
 
 
     bpf_printk("exec nexthop\n");
