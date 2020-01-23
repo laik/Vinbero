@@ -301,8 +301,6 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
     __u32 ifindex;
     unsigned short smac;
     unsigned short dmac;
-    __builtin_memset(&smac, 0, 2);
-    __builtin_memset(&dmac, 0, 2);
 
     lookup_nexthop(xdp, &smac, &dmac, &ifindex);
     // bpf_printk("check_lookup_result\n");
