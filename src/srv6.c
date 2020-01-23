@@ -276,13 +276,13 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
 
     rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
 
-    if (rc == BPF_FIB_LKUP_RET_SUCCESS) {
-        *ifindex = fib_params.ifindex;
-        __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
-        __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
+    if (!rc) {
+        __builtin_memset(dmac, 0, ETH_ALEN);
         return;
     }
-    __builtin_memset(dmac, 0, ETH_ALEN);
+    *ifindex = fib_params.ifindex;
+    __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
+    __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
     return;
 }
 
@@ -307,10 +307,9 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
     lookup_nexthop(xdp, &smac, &dmac, &ifindex);
     // bpf_printk("check_lookup_result\n");
     if (check_lookup_result(&dmac)) {
-        // bpf_printk("check_lookup_result match\n");
+        bpf_printk("check_lookup_result match\n");
         set_src_dst_mac(data, &smac, &dmac);
-        // __builtin_memcpy(eth->h_dest, dmac, ETH_ALEN);
-        // __builtin_memcpy(eth->h_source, smac, ETH_ALEN);
+
         if (xdp->ingress_ifindex == ifindex) {
             bpf_printk("select TX\n");
             return XDP_TX;
