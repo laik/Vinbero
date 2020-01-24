@@ -13,6 +13,7 @@
 #include <linux/udp.h>
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
+#include "xdpcap.h"
 
 // linux/socket.h
 #define AF_INET		2	/* Internet IP Protocol 	*/
@@ -90,6 +91,9 @@ struct bpf_map_def SEC("maps") function_table = {
     .value_size = sizeof(struct end_function),
     .max_entries = MAX_END_FUNCTION_ENTRIES,
 };
+
+// https://github.com/cloudflare/xdpcap
+struct bpf_map_def SEC("maps") xdpcap_hook = XDPCAP_HOOK();
 
 static inline int check_lookup_result(void *dest)
 {
@@ -473,11 +477,11 @@ int srv6_handler(struct xdp_md *xdp)
 
     if (data + sizeof(*eth) > data_end) {
         bpf_printk("data_end 1\n");
-        return XDP_PASS;
+        return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
     }
     if (!iph || !v6h) {
         bpf_printk("data_end 2\n");
-        return XDP_PASS;
+        return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
     }
 
     h_proto = eth->h_proto;
@@ -491,7 +495,7 @@ int srv6_handler(struct xdp_md *xdp)
             switch (tb->action) {
                 case SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D:
                     bpf_printk("run SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D\n");
-                    return action_t_gtp4_d(xdp, tb);
+                    return xdpcap_exit(xdp, &xdpcap_hook, action_t_gtp4_d(xdp, tb));
             }
         }
 
@@ -506,7 +510,7 @@ int srv6_handler(struct xdp_md *xdp)
                 switch (ef_table->function) {
                     case SEG6_LOCAL_ACTION_END:
                         bpf_printk("run action_end\n");
-                        return action_end(xdp);
+                        return xdpcap_exit(xdp, &xdpcap_hook, action_end(xdp));
                 }
             }
 
@@ -517,7 +521,7 @@ int srv6_handler(struct xdp_md *xdp)
         }
     }
     bpf_printk("no match all\n");
-    return XDP_PASS;
+    return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
 }
 
 SEC("xdp_pass")

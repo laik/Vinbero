@@ -35,3 +35,13 @@ ip netns exec host2 ./gtp-link add gtp2
 ip netns exec host2 ./gtp-tunnel add gtp2 v1 100 200 10.0.1.1 172.0.1.1 
 ip netns exec host2 ip route add 10.0.1.1/32 dev gtp2
 ```
+
+## xdpcap
+
+See https://github.com/cloudflare/xdpcap
+
+* capture packets
+
+```
+xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
+```

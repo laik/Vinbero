@@ -94,6 +94,13 @@ func run() error {
 		return errors.WithStack(err)
 	}
 
+	xdpcapHook, ok := coll.Maps["xdpcap_hook"]
+	if ok {
+		path := "/sys/fs/bpf/xdpcap_hook"
+		os.RemoveAll(path)
+		xdpcapHook.Pin(path)
+	}
+
 	for _, dev := range data.Devices {
 		// Attach to interface
 		err = xdptool.Attach(coll, data.ProgName, dev)
