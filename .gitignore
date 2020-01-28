@@ -172,7 +172,7 @@ dmypy.json
 
 ### Vagrant ###
 # General
-.vagrant/*
+.vagrant
 
 # Log files (if you are creating logs in debug mode, uncomment this)
 # *.log
@@ -181,3 +181,16 @@ dmypy.json
 *.box
 
 # End of https://www.gitignore.io/api/go,linux,macos,python,vagrant
+
+## dev env not include file
+.envrc
+.vscode/settings.json
+dump.log
+out/srv6.o
+
+.terraform
+terraform.tfstate
+.terraform.*
+terraform.tfstate.backup
+id_rsa
+var.yml

@@ -6,6 +6,7 @@
 ## Run
 
 ```bash
+$ cd script
 $ vagrant up
 $ sudo su
 ./root/scripts/create-namespaces.sh
