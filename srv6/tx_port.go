@@ -1,16 +1,14 @@
-
 package srv6
 
 import (
-	
 	"errors"
 	"fmt"
-	"unsafe"
 	"log"
 	"os"
+	"unsafe"
+
 	"github.com/newtools/ebpf"
 	"github.com/takehaya/srv6-gtp/xdptool"
-
 )
 
 type TxPortKey struct {
@@ -48,7 +46,6 @@ func (m *TxPortsMap) Update(txp TxPort, iface int) error {
 	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
 }
 
-
 func (m *TxPortsMap) Get(iface int) (*TxPort, error) {
 	key := TxPortKey{Iface: iface}
 	entry := make([]TxPort, xdptool.PossibleCpus)
@@ -75,7 +72,7 @@ func (m *TxPortsMap) List() (map[TxPortKey]*TxPort, error) {
 		}
 		err = xdptool.LookupElement(m.FD, unsafe.Pointer(&nextKey), unsafe.Pointer(&entry[0]))
 		if err != nil {
-			return nil, fmt.Errorf("unable to lookup %s map: %s",STR_TXPort ,err)
+			return nil, fmt.Errorf("unable to lookup %s map: %s", STR_TXPort, err)
 		}
 		txptables[nextKey] = &entry[0]
 		key = nextKey

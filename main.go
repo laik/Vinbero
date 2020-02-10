@@ -98,7 +98,10 @@ func run() error {
 	if ok {
 		path := "/sys/fs/bpf/xdpcap_hook"
 		os.RemoveAll(path)
-		xdpcapHook.Pin(path)
+		err = xdpcapHook.Pin(path)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	for _, dev := range data.Devices {

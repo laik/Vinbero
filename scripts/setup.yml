@@ -1,0 +1,62 @@
+# common setup phase
+- hosts: cloud_servers
+  become: yes
+  vars_files:
+   - var.yml
+  tasks:
+  - name: add a users group
+    group: name={{ item.name }} state=present
+    with_items:
+    - "{{ users }}"
+  - name: add a new user
+    user:
+      name: "{{ item.name }}"
+      uid: "{{ item.uid}}"
+      password: "{{ item.password | password_hash('sha512') }}"
+      group: "{{ item.name }}"
+      shell: /bin/bash
+      groups: sudo
+      state: present
+    with_items:
+      - "{{ users }}"
+  - name: mkdir .ssh
+    file:
+      path: /home/{{ item.name }}/.ssh/
+      state: directory
+      owner: "{{ item.name }}"
+      group: sudo
+      mode: 0700
+    with_items:
+      - "{{ users }}"
+  - name: add authorized_key
+    authorized_key:
+      user: "{{ item.name }}"
+      key: "{{ lookup('file', '~/.ssh/toor.pub') }}"
+    with_items:
+      - "{{ users }}"
+  - name: add to sudoers
+    lineinfile:
+      dest: /etc/sudoers
+      line: "{{ item.name }} ALL=(ALL) NOPASSWD:ALL"
+    with_items:
+      - "{{ users }}"
+
+  - name: routing file
+    copy:
+      src: ./setup_systemd/{{ inventory_hostname }}.sh
+      dest: /opt/netsetup.sh
+      owner: root
+      group: root
+      mode: 755
+  - name: routing systemd
+    copy:
+      src: ./setup_systemd/netsetup.service
+      dest: /etc/systemd/system/netsetup.service
+      owner: root
+      group: root
+  - name: netsetup.service restart
+    service:
+      name: netsetup.service
+      daemon_reload: yes
+      state: restarted
+      enabled: yes
