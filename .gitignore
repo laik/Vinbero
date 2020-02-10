@@ -194,3 +194,5 @@ terraform.tfstate
 terraform.tfstate.backup
 id_rsa
 var.yml
+hook.h
+main
