@@ -1,6 +1,4 @@
 #!/bin/bash
-set -eu
-
 # addr configuraiton
 sudo ip link set lo up
 sudo ip addr add fc00:1::1/128 dev lo

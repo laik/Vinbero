@@ -3,12 +3,13 @@ package xdptool
 import (
 	"fmt"
 	"os"
+
+	"github.com/newtools/ebpf"
 	"github.com/pkg/errors"
 	"github.com/vishvananda/netlink"
-	"github.com/newtools/ebpf"
 )
 
-func LoadElf(filepath string) (*ebpf.Collection, error){
+func LoadElf(filepath string) (*ebpf.Collection, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -27,7 +28,7 @@ func LoadElf(filepath string) (*ebpf.Collection, error){
 	return coll, nil
 }
 
-func Attach(coll *ebpf.Collection, attach_func string, device string) error{
+func Attach(coll *ebpf.Collection, attach_func string, device string) error {
 
 	prog, ok := coll.Programs[attach_func]
 	if !ok {
@@ -44,7 +45,7 @@ func Attach(coll *ebpf.Collection, attach_func string, device string) error{
 	return nil
 }
 
-func Detach(device string) error{
+func Detach(device string) error {
 	link, err := netlink.LinkByName(device)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to get device %s: %s\n", device, err))

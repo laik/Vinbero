@@ -1,8 +1,6 @@
 // https://github.com/vishvananda/netlink/blob/master/nl/seg6local_linux.go
 package srv6
 
-import ()
-
 // seg6local parameters
 const (
 	SEG6_LOCAL_UNSPEC = iota
@@ -77,7 +75,7 @@ func SEG6LocalActionString(action int) string {
 	case SEG6_LOCAL_ACTION_T_M_GTP4_E:
 		return "T.M.GTP4.E"
 	}
-	
+
 	return "unknown"
 }
 
@@ -115,6 +113,6 @@ func SEG6LocalActionEnum(name string) uint8 {
 	case "SEG6_LOCAL_ACTION_T_M_GTP4_E":
 		return SEG6_LOCAL_ACTION_T_M_GTP4_E
 	}
-	
+
 	return __SEG6_LOCAL_ACTION_MAX
 }

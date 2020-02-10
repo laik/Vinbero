@@ -1,5 +1,4 @@
 #!/bin/bash
-set -eu
 
 # addr configuraiton
 sudo ip link set lo up
@@ -17,9 +16,13 @@ ip -6 route add fc00:12::/64 via fc00:23::2
 sudo sysctl net.ipv4.conf.all.forwarding=1
 sudo sysctl net.ipv6.conf.all.forwarding=1
 sudo sysctl net.ipv4.conf.all.rp_filter=0
+sudo sysctl net.ipv4.conf.eth1.rp_filter=0
 sudo sysctl net.ipv4.conf.eth2.rp_filter=0
+
 sudo sysctl net.ipv6.conf.all.seg6_enabled=1
 sudo sysctl net.ipv6.conf.default.seg6_enabled=1
+sudo sysctl net.ipv6.conf.eth1.seg6_enabled=1
+sudo sysctl net.ipv6.conf.eth2.seg6_enabled=1
 
 sudo ip route add 172.0.1.0/24 encap seg6 mode encap segs fc00:2::2,fc00:1::1 dev eth2
 sudo ip -6 route del local fc00:3::3

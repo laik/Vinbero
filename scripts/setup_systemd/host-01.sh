@@ -1,5 +1,4 @@
 #!/bin/bash
-set -eu
 
 # addr configuraiton
 sudo ip link set lo up

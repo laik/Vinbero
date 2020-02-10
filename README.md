@@ -41,6 +41,17 @@ ip netns exec host2 ip route add 10.0.1.1/32 dev gtp2
 
 See https://github.com/cloudflare/xdpcap
 
+### install
+```
+cd include
+wget https://raw.githubusercontent.com/cloudflare/xdpcap/master/hook.h
+```
+
+```
+# run on each nodes
+sudo mount bpffs /sys/fs/bpf -t bpf
+```
+
 * capture packets
 
 ```
