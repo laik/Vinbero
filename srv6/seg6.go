@@ -19,16 +19,16 @@ type IPv6SrHdr struct {
 
 // seg6 encap mode
 const (
-	SEG6_IPTUN_MODE_INLINE = iota
-	SEG6_IPTUN_MODE_ENCAP //1
-	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D   //2
+	SEG6_IPTUN_MODE_INLINE           = iota
+	SEG6_IPTUN_MODE_ENCAP            //1
+	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D //2
 	__SEG6_IPTUN_MODE_MAX
 )
-
 
 const (
 	SEG6_IPTUN_MODE_MAX = __SEG6_IPTUN_MODE_MAX
 )
+
 // number of nested RTATTR
 // from include/uapi/linux/seg6_iptunnel.h
 const (
@@ -39,7 +39,6 @@ const (
 const (
 	SEG6_IPTUNNEL_MAX = __SEG6_IPTUNNEL_MAX - 1
 )
-
 
 // Helper functions
 func SEG6EncapModeString(mode int) string {
@@ -54,7 +53,7 @@ func SEG6EncapModeString(mode int) string {
 	return "unknown"
 }
 
-func SEG6EncapModeInt(name string) int {
+func SEG6EncapModeInt(name string) uint8 {
 	switch name {
 	case "SEG6_IPTUN_MODE_INLINE":
 		return SEG6_IPTUN_MODE_INLINE

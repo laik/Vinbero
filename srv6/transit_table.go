@@ -1,8 +1,6 @@
-
 package srv6
 
 import (
-	
 	"errors"
 	"fmt"
 	"log"
@@ -11,7 +9,6 @@ import (
 
 	"github.com/newtools/ebpf"
 	"github.com/takehaya/srv6-gtp/xdptool"
-
 )
 
 const MAX_SEGMENTS = 5
@@ -21,9 +18,10 @@ type TransitTablev4Key struct {
 }
 
 type TransitTablev4 struct {
+	Action         uint8
 	Segment_length uint32
-	Saddr		   [16]byte
-	Segments	   [][16]byte
+	Saddr          [16]byte
+	Segments       [MAX_SEGMENTS][16]byte
 }
 
 type TransitTablev4sMap struct {
@@ -53,7 +51,6 @@ func (m *TransitTablev4sMap) Update(v4table TransitTablev4, ip [4]byte) error {
 	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
 }
 
-
 func (m *TransitTablev4sMap) Get(ip [4]byte) (*TransitTablev4, error) {
 	key := TransitTablev4Key{Daddr: ip}
 	entry := make([]TransitTablev4, xdptool.PossibleCpus)
@@ -80,7 +77,7 @@ func (m *TransitTablev4sMap) List() ([]*TransitTablev4, error) {
 		}
 		err = xdptool.LookupElement(m.FD, unsafe.Pointer(&nextKey), unsafe.Pointer(&entry[0]))
 		if err != nil {
-			return nil, fmt.Errorf("unable to lookup %s map: %s",STR_TransitTablev4 ,err)
+			return nil, fmt.Errorf("unable to lookup %s map: %s", STR_TransitTablev4, err)
 		}
 		v4tables = append(v4tables, &entry[0])
 		key = nextKey

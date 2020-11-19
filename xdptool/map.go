@@ -5,12 +5,12 @@ import "C"
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"strings"
 	"syscall"
 	"unsafe"
-	"net"
-	"strings"
-	
+
 	"github.com/newtools/ebpf"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
@@ -291,7 +291,6 @@ func ObjGet(pathname string) (int, error) {
 
 	return int(fd), nil
 }
-
 
 // NewCollectionWithOptions creates a Collection from a specification.
 //

@@ -6,6 +6,7 @@
 ## Run
 
 ```bash
+$ cd script
 $ vagrant up
 $ sudo su
 ./root/scripts/create-namespaces.sh
@@ -34,4 +35,25 @@ ip netns exec host2 ./gtp-link add gtp2
 > Open a new console and configure tunnel (PDP session) 
 ip netns exec host2 ./gtp-tunnel add gtp2 v1 100 200 10.0.1.1 172.0.1.1 
 ip netns exec host2 ip route add 10.0.1.1/32 dev gtp2
+```
+
+## xdpcap
+
+See https://github.com/cloudflare/xdpcap
+
+### install
+```
+cd include
+wget https://raw.githubusercontent.com/cloudflare/xdpcap/master/hook.h
+```
+
+```
+# run on each nodes
+sudo mount bpffs /sys/fs/bpf -t bpf
+```
+
+* capture packets
+
+```
+xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 ```

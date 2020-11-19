@@ -1,17 +1,14 @@
-
 package srv6
 
 import (
-	
 	"errors"
-	"log"
-	"unsafe"
 	"fmt"
+	"log"
 	"os"
+	"unsafe"
 
 	"github.com/newtools/ebpf"
 	"github.com/takehaya/srv6-gtp/xdptool"
-
 )
 
 type FunctionTableKey struct {
@@ -49,7 +46,6 @@ func (m *FunctionTablesMap) Update(fn FunctionTable, ip [16]byte) error {
 	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
 }
 
-
 func (m *FunctionTablesMap) Get(ip [16]byte) (*FunctionTable, error) {
 	key := FunctionTableKey{Daddr: ip}
 	entry := make([]FunctionTable, xdptool.PossibleCpus)
@@ -76,7 +72,7 @@ func (m *FunctionTablesMap) List() ([]*FunctionTable, error) {
 		}
 		err = xdptool.LookupElement(m.FD, unsafe.Pointer(&nextKey), unsafe.Pointer(&entry[0]))
 		if err != nil {
-			return nil, fmt.Errorf("unable to lookup %s map: %s",STR_FunctionTable ,err)
+			return nil, fmt.Errorf("unable to lookup %s map: %s", STR_FunctionTable, err)
 		}
 		functables = append(functables, &entry[0])
 		key = nextKey

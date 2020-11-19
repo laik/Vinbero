@@ -1,9 +1,10 @@
 #!/bin/bash
 
-KERNEL_VERSION=v4.19
+version=$(uname -r)
+KERNEL_VERSION="v${version:0:3}"
 
 root_dir=$(pwd)
-
+echo $KERNEL_VERSION
 rm -rf build
 mkdir build
 

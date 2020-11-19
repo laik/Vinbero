@@ -1,6 +1,6 @@
 #!/bin/bash
 
-prog_dir=./build/linux/bpfprog
+prog_dir=./build/bpfprog
 include_dir=./include
 rm -rf $prog_dir
 mkdir -p $prog_dir
