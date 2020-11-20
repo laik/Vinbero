@@ -1,8 +1,8 @@
 elffilepath: out/srv6.o
 progname: srv6_handler
-devices: 
-  - veth-rt2-rt1
-  - veth-rt2-rt3
+devices:
+  - eth1
+  - eth2
 set:
   functions:
     - action: SEG6_LOCAL_ACTION_END
@@ -13,6 +13,6 @@ set:
   #   - action: SEG6_IPTUN_MODE_ENCAP
   #     addr: 172.0.2.0
   #     action_source_addr: fc00:1::1
-  #     segments: 
+  #     segments:
   #       - fc00:2::1
   #       - fc00:3::3

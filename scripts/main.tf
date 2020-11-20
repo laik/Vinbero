@@ -9,13 +9,13 @@ provider "sakuracloud" {
 
 # ubuntu archive
 data sakuracloud_archive "ubuntu-archive" {
-  filter{
+  filter {
     tags = ["ubuntu", "linux", "v5.5"]
   }
 }
 
 # pub key
-resource sakuracloud_ssh_key_gen "key"{
+resource sakuracloud_ssh_key_gen "key" {
   name = "pubkey"
 
   provisioner "local-exec" {
@@ -76,17 +76,17 @@ resource sakuracloud_disk "router-03-disk" {
 
 # servers
 resource sakuracloud_server "host-01-server" {
-  name            = "host-01"
-  core            = 4
-  memory          = 4
-  disks           = [sakuracloud_disk.host-01-disk.id]
-  tags            = ["@nic-double-queue", "srv6"]
+  name   = "host-01"
+  core   = 4
+  memory = 4
+  disks  = [sakuracloud_disk.host-01-disk.id]
+  tags   = ["@nic-double-queue", "srv6"]
 
   network_interface {
-    upstream         = "shared"
+    upstream = "shared"
   }
   network_interface {
-    upstream         = sakuracloud_switch.h1-rt1-switch.id
+    upstream = sakuracloud_switch.h1-rt1-switch.id
   }
   disk_edit_parameter {
     hostname        = "host-01"
@@ -97,19 +97,19 @@ resource sakuracloud_server "host-01-server" {
 }
 
 resource sakuracloud_server "router-01-server" {
-  name            = "router-01"
-  core            = 4
-  memory          = 4
-  disks           = [sakuracloud_disk.router-01-disk.id]
-  tags            = ["@nic-double-queue", "srv6"]
+  name   = "router-01"
+  core   = 4
+  memory = 4
+  disks  = [sakuracloud_disk.router-01-disk.id]
+  tags   = ["@nic-double-queue", "srv6"]
   network_interface {
-    upstream         = "shared"
+    upstream = "shared"
   }
   network_interface {
-    upstream         = sakuracloud_switch.h1-rt1-switch.id
+    upstream = sakuracloud_switch.h1-rt1-switch.id
   }
   network_interface {
-    upstream         = sakuracloud_switch.rt1-rt2-switch.id
+    upstream = sakuracloud_switch.rt1-rt2-switch.id
   }
   disk_edit_parameter {
     hostname        = "router-01"
@@ -120,22 +120,22 @@ resource sakuracloud_server "router-01-server" {
 }
 
 resource sakuracloud_server "router-02-server" {
-  name            = "router-02"
-  core            = 4
-  memory          = 4
-  disks           = [sakuracloud_disk.router-02-disk.id]
-  tags            = ["@nic-double-queue", "srv6"]
+  name   = "router-02"
+  core   = 4
+  memory = 4
+  disks  = [sakuracloud_disk.router-02-disk.id]
+  tags   = ["@nic-double-queue", "srv6"]
   network_interface {
-    upstream         = "shared"
+    upstream = "shared"
   }
   network_interface {
-    upstream         = sakuracloud_switch.rt1-rt2-switch.id
+    upstream = sakuracloud_switch.rt1-rt2-switch.id
   }
   network_interface {
-    upstream         = sakuracloud_switch.rt2-rt3-switch.id
+    upstream = sakuracloud_switch.rt2-rt3-switch.id
   }
   disk_edit_parameter {
-  hostname        = "router-02"
+    hostname        = "router-02"
     ssh_key_ids     = [sakuracloud_ssh_key_gen.key.id]
     password        = "PUT_YOUR_PASSWORD_HERE"
     disable_pw_auth = "true"
@@ -143,19 +143,19 @@ resource sakuracloud_server "router-02-server" {
 }
 
 resource sakuracloud_server "router-03-server" {
-  name            = "router-03"
-  core            = 4
-  memory          = 4
-  disks           = [sakuracloud_disk.router-03-disk.id]
-  tags            = ["@nic-double-queue", "srv6"]
+  name   = "router-03"
+  core   = 4
+  memory = 4
+  disks  = [sakuracloud_disk.router-03-disk.id]
+  tags   = ["@nic-double-queue", "srv6"]
   network_interface {
-    upstream         = "shared"
+    upstream = "shared"
   }
   network_interface {
-    upstream         = sakuracloud_switch.rt2-rt3-switch.id
+    upstream = sakuracloud_switch.rt2-rt3-switch.id
   }
-    network_interface {
-    upstream         = sakuracloud_switch.rt3-h2-switch.id
+  network_interface {
+    upstream = sakuracloud_switch.rt3-h2-switch.id
   }
   disk_edit_parameter {
     hostname        = "router-03"
@@ -165,17 +165,17 @@ resource sakuracloud_server "router-03-server" {
   }
 }
 resource sakuracloud_server "host-02-server" {
-  name            = "host-02"
-  core            = 4
-  memory          = 4
-  disks           = [sakuracloud_disk.host-02-disk.id]
-  tags            = ["@nic-double-queue", "srv6"]
+  name   = "host-02"
+  core   = 4
+  memory = 4
+  disks  = [sakuracloud_disk.host-02-disk.id]
+  tags   = ["@nic-double-queue", "srv6"]
 
   network_interface {
-    upstream         = "shared"
+    upstream = "shared"
   }
   network_interface {
-    upstream         = sakuracloud_switch.rt3-h2-switch.id
+    upstream = sakuracloud_switch.rt3-h2-switch.id
   }
   disk_edit_parameter {
     hostname        = "host-02"
@@ -185,22 +185,22 @@ resource sakuracloud_server "host-02-server" {
   }
 }
 
-output "host-01"{
+output "host-01" {
   value = "${sakuracloud_server.host-01-server.ip_address}"
 }
 
-output "router-01"{
+output "router-01" {
   value = "${sakuracloud_server.router-01-server.ip_address}"
 }
 
-output "router-02"{
+output "router-02" {
   value = "${sakuracloud_server.router-02-server.ip_address}"
 }
 
-output "router-03"{
+output "router-03" {
   value = "${sakuracloud_server.router-03-server.ip_address}"
 }
 
-output "host-02"{
+output "host-02" {
   value = "${sakuracloud_server.host-02-server.ip_address}"
 }
