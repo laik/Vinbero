@@ -26,8 +26,8 @@ sudo sysctl net.ipv6.conf.default.seg6_enabled=1
 sudo sysctl net.ipv6.conf.eth1.seg6_enabled=1
 sudo sysctl net.ipv6.conf.eth2.seg6_enabled=1
 
-sudo ip -6 route add fc00:2::1/128 encap seg6local action End dev eth1
-sudo ip -6 route add fc00:2::2/128 encap seg6local action End dev eth2
+# sudo ip -6 route add fc00:2::1/128 encap seg6local action End dev eth1
+# sudo ip -6 route add fc00:2::2/128 encap seg6local action End dev eth2
 
 ethtool -L eth0 combined 2
 ethtool -L eth1 combined 2

@@ -3,12 +3,12 @@ You can develop on sakura cloud.
 * required
     * terraform(0.12.5 <= x)
     * ansible(2.8.3 <= x)
-    * terraform-provider-sakuracloud(1.15.2 <= x)
+    * terraform-provider-sakuracloud(2.2.0 <= x)
         * hint: [Terraform for さくらのクラウド](https://sacloud.github.io/terraform-provider-sakuracloud/installation/)
 
 ## Prepare Create Archive image
 ```sh
-sudo apt update 
+sudo apt update
 sudo apt upgrade -y
 sudo apt install -y make
 # selected ubuntu image.
@@ -18,7 +18,7 @@ make
 # select new kernel
 sudo uktools-upgrade
 
-sudo apt update 
+sudo apt update
 sudo apt upgrade -y
 sudo apt install -y bison flex clang gcc llvm libelf-dev bc libssl-dev tmux trace-cmd pkg-config  libtalloc-dev libpcsclite-dev libmnl-dev autoconf libtool binutils-dev libelf-dev libreadline-dev ethtool
 
