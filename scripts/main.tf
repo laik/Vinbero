@@ -1,16 +1,23 @@
-
 terraform {
   required_version = ">= 0.12.5"
-}
+  required_providers {
+    sakuracloud = {
+      source = "sacloud/sakuracloud"
 
+      # We recommend pinning to the specific version of the SakuraCloud Provider you're using
+      # since new versions are released frequently
+      version = "~> 2"
+    }
+  }
+}
+# Configure the SakuraCloud Provider
 provider "sakuracloud" {
-  version = ">=2.2.0"
 }
 
 # ubuntu archive
 data sakuracloud_archive "ubuntu-archive" {
   filter {
-    tags = ["ubuntu", "linux", "v5.5"]
+    tags = ["ubuntu", "2004", "5.8"]
   }
 }
 

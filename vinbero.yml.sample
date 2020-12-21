@@ -1,0 +1,28 @@
+internal:
+  # logfile: "/var/log/vinbero.log"
+  logfile: "./vinbero.log"
+  development: false
+  devices:
+    - eth1
+    - eth2
+settings:
+  functions:
+    - action: SEG6_LOCAL_ACTION_END
+      addr: fc00:2::1/128
+      actionSourceAddr: fc00:1::1
+    - action: SEG6_LOCAL_ACTION_END
+      addr: fc00:2::2/128
+  transitv4:
+    - action: SEG6_IPTUN_MODE_ENCAP
+      addr: 172.0.2.0/24
+      actionSourceAddr: fc00:1::1
+      segments:
+        - fc00:2::1
+        - fc00:3::3
+  transitv6:
+    - action: SEG6_IPTUN_MODE_ENCAP
+      addr: fd00:1::1/64
+      actionSourceAddr: fc00:1::1
+      segments:
+        - fc00:2::1
+        - fc00:3::3

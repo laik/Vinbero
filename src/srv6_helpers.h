@@ -1,6 +1,7 @@
 #ifndef __SRV6_HELPERS_H
 #define __SRV6_HELPERS_H
 
+#include <stdbool.h>
 #include <linux/types.h>
 #include <linux/bpf.h>
 #include <linux/if_ether.h>
@@ -15,29 +16,28 @@
 #include "bpf_endian.h"
 #include "srv6_consts.h"
 
-static inline int check_lookup_result(void *dest)
+/* from include/net/ip.h */
+__attribute__((__always_inline__)) static inline int ip_decrease_ttl(struct iphdr *iph)
 {
-    unsigned short *dmac = dest;
-    if (dmac[0] == 0 || dmac[1] == 0 || dmac[2] == 0 || dmac[3] == 0 || dmac[4] == 0 ||
-        dmac[5] == 0)
-    {
-        return 0;
-    }
-    return 1;
-}
+    __u32 check = (__u32)iph->check;
+
+    check += (__u32)bpf_htons(0x0100);
+    iph->check = (__sum16)(check + (check >= 0xFFFF));
+    return --iph->ttl;
+};
 
 /* Function to set source and destination mac of the packet */
-static inline void set_src_dst_mac(void *data, void *src, void *dst)
+__attribute__((__always_inline__)) static inline void set_src_dst_mac(void *data, void *src, void *dst)
 {
     unsigned short *source = src;
     unsigned short *dest = dst;
     unsigned short *p = data;
 
-    __builtin_memcpy(p, dest, 6);
-    __builtin_memcpy(p + 3, source, 6);
+    __builtin_memcpy(p, dest, ETH_ALEN);
+    __builtin_memcpy(p + 3, source, ETH_ALEN);
 }
 
-static inline struct ipv6_sr_hdr *get_srh(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct ipv6_sr_hdr *get_srh(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
@@ -55,7 +55,7 @@ static inline struct ipv6_sr_hdr *get_srh(struct xdp_md *xdp)
     return srh;
 }
 
-static inline struct ipv6hdr *get_ipv6(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct ipv6hdr *get_ipv6(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
@@ -75,7 +75,7 @@ static inline struct ipv6hdr *get_ipv6(struct xdp_md *xdp)
     return v6h;
 };
 
-static inline struct iphdr *get_ipv4(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct iphdr *get_ipv4(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
@@ -95,7 +95,7 @@ static inline struct iphdr *get_ipv4(struct xdp_md *xdp)
     return iph;
 };
 
-static inline struct ipv6_sr_hdr *get_and_validate_srh(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct ipv6_sr_hdr *get_and_validate_srh(struct xdp_md *xdp)
 {
     struct ipv6_sr_hdr *srh;
 
@@ -119,7 +119,7 @@ static inline struct ipv6_sr_hdr *get_and_validate_srh(struct xdp_md *xdp)
     return srh;
 }
 
-static inline int advance_nextseg(struct ipv6_sr_hdr *srh, struct in6_addr *daddr, struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline bool advance_nextseg(struct ipv6_sr_hdr *srh, struct in6_addr *daddr, struct xdp_md *xdp)
 {
     struct in6_addr *addr;
     void *data_end = (void *)(long)xdp->data_end;
@@ -127,50 +127,41 @@ static inline int advance_nextseg(struct ipv6_sr_hdr *srh, struct in6_addr *dadd
     srh->segments_left--;
     if ((void *)(long)srh + sizeof(struct ipv6_sr_hdr) + sizeof(struct in6_addr) * (srh->segments_left + 1) > data_end)
     {
-        return 0;
+        return false;
     }
     addr = srh->segments + srh->segments_left;
     if (addr + 1 > data_end)
     {
-        return 0;
+        return false;
     }
     *daddr = *addr;
-    return 1;
+    return true;
 }
 
 // WIP: write by only ipv6 type
-static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, __u32 *ifindex)
+__attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_md *xdp, void *smac, void *dmac, __u32 *ifindex)
 {
     bpf_printk("run lookup_nexthop\n");
-    unsigned short *smac = source;
-    unsigned short *dmac = dest;
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
-    struct ipv6hdr *v6h = data + sizeof(struct ethhdr);
-    struct iphdr *iph = data + sizeof(struct ethhdr);
-
-    if (data + sizeof(struct ethhdr) > data_end)
-    {
-        __builtin_memset(dmac, 0, ETH_ALEN);
-        return;
-    }
-
-    struct bpf_fib_lookup fib_params;
-
+    struct iphdr *iph = get_ipv4(xdp);
+    struct ipv6hdr *v6h = get_ipv6(xdp);
+    struct bpf_fib_lookup fib_params = {};
     __u16 h_proto;
+    //TODO:: impl dot1q proto
+    if (data + sizeof(struct ethhdr) > data_end)
+        return false;
+
+    if (!iph || !v6h)
+        return false;
 
     h_proto = eth->h_proto;
     __builtin_memset(&fib_params, 0, sizeof(fib_params));
 
-    if (h_proto == bpf_htons(ETH_P_IP))
+    switch (h_proto)
     {
-        if (eth + sizeof(struct iphdr) > data_end)
-        {
-            __builtin_memset(dmac, 0, ETH_ALEN);
-            return;
-        }
-
+    case bpf_htons(ETH_P_IP):
         fib_params.family = AF_INET;
         fib_params.tos = iph->tos;
         fib_params.l4_protocol = iph->protocol;
@@ -179,24 +170,15 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
         fib_params.tot_len = bpf_ntohs(iph->tot_len);
         fib_params.ipv4_src = iph->saddr;
         fib_params.ipv4_dst = iph->daddr;
-    }
-    else if (h_proto == bpf_htons(ETH_P_IPV6))
-    {
-        if (v6h + sizeof(struct ipv6hdr) > data_end)
-        {
-            __builtin_memset(dmac, 0, ETH_ALEN);
-            return;
-        }
+        break;
+
+    case bpf_htons(ETH_P_IPV6):
+        if (v6h->hop_limit <= 1)
+            return false;
+
         struct in6_addr *src = (struct in6_addr *)fib_params.ipv6_src;
         struct in6_addr *dst = (struct in6_addr *)fib_params.ipv6_dst;
-        // bpf_fib_lookup
-        // flags: BPF_FIB_LOOKUP_DIRECT, BPF_FIB_LOOKUP_OUTPUT
-        // https://github.com/torvalds/linux/blob/v4.18/include/uapi/linux/bpf.h#L2611
-        if (v6h->hop_limit <= 1)
-        {
-            __builtin_memset(dmac, 0, ETH_ALEN);
-            return;
-        }
+
         fib_params.family = AF_INET6;
         fib_params.tos = 0;
         fib_params.flowinfo = *(__be32 *)v6h & IPV6_FLOWINFO_MASK;
@@ -206,26 +188,47 @@ static inline void lookup_nexthop(struct xdp_md *xdp, void *source, void *dest, 
         fib_params.tot_len = bpf_ntohs(v6h->payload_len);
         *src = v6h->saddr;
         *dst = v6h->daddr;
-    }
-    else
-    {
-        __builtin_memset(dmac, 0, ETH_ALEN);
-        return;
+        break;
+
+    default:
+        return false;
     }
 
+    // bpf_fib_lookup
+    // flags: BPF_FIB_LOOKUP_DIRECT, BPF_FIB_LOOKUP_OUTPUT
+    // https://github.com/torvalds/linux/blob/v4.18/include/uapi/linux/bpf.h#L2611
     fib_params.ifindex = xdp->ingress_ifindex;
+    // int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT);
+    int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
 
-    int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT);
-
-    if (!rc)
+    switch (rc)
     {
-        __builtin_memset(dmac, 0, ETH_ALEN);
-        return;
+    case BPF_FIB_LKUP_RET_SUCCESS: /* lookup successful */
+        if (h_proto == bpf_htons(ETH_P_IP))
+            ip_decrease_ttl(iph);
+        else if (h_proto == bpf_htons(ETH_P_IPV6))
+            v6h->hop_limit--;
+
+        *ifindex = fib_params.ifindex;
+
+        __u8 *source = smac;
+        __u8 *dest = dmac;
+        __builtin_memcpy(dest, fib_params.dmac, ETH_ALEN);
+        __builtin_memcpy(source, fib_params.smac, ETH_ALEN);
+        return true;
+    case BPF_FIB_LKUP_RET_BLACKHOLE:   /* dest is blackholed; can be dropped */
+    case BPF_FIB_LKUP_RET_UNREACHABLE: /* dest is unreachable; can be dropped */
+    case BPF_FIB_LKUP_RET_PROHIBIT:    /* dest not allowed; can be dropped */
+        // action = XDP_DROP;
+        // return false;
+    case BPF_FIB_LKUP_RET_NOT_FWDED:    /* packet is not forwarded */
+    case BPF_FIB_LKUP_RET_FWD_DISABLED: /* fwding is not enabled on ingress */
+    case BPF_FIB_LKUP_RET_UNSUPP_LWT:   /* fwd requires encapsulation */
+    case BPF_FIB_LKUP_RET_NO_NEIGH:     /* no neighbor entry for nh */
+    case BPF_FIB_LKUP_RET_FRAG_NEEDED:  /* fragmentation required to fwd */
+        /* PASS */
+        return false;
     }
-    bpf_printk("fib_lookup success");
-    *ifindex = fib_params.ifindex;
-    __builtin_memcpy(dmac, fib_params.dmac, ETH_ALEN);
-    __builtin_memcpy(smac, fib_params.smac, ETH_ALEN);
-    return;
+    return false;
 }
 #endif

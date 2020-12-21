@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/newtools/ebpf"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -292,46 +291,46 @@ func ObjGet(pathname string) (int, error) {
 	return int(fd), nil
 }
 
-// NewCollectionWithOptions creates a Collection from a specification.
-//
-// Only maps referenced by at least one of the programs are initialized.
-func NewCollectionWithOptions(spec *ebpf.CollectionSpec, opts ebpf.CollectionOptions) (*ebpf.Collection, error) {
-	maps := make(map[string]*ebpf.Map)
-	for mapName, mapSpec := range spec.Maps {
-		m, err := ebpf.NewMap(mapSpec)
-		if err != nil {
-			return nil, errors.Wrapf(err, "map %s", mapName)
-		}
-		maps[mapName] = m
-	}
+// // NewCollectionWithOptions creates a Collection from a specification.
+// //
+// // Only maps referenced by at least one of the programs are initialized.
+// func NewCollectionWithOptions(spec *ebpf.CollectionSpec, opts ebpf.CollectionOptions) (*ebpf.Collection, error) {
+// 	maps := make(map[string]*ebpf.Map)
+// 	for mapName, mapSpec := range spec.Maps {
+// 		m, err := ebpf.NewMap(mapSpec)
+// 		if err != nil {
+// 			return nil, errors.Wrapf(err, "map %s", mapName)
+// 		}
+// 		maps[mapName] = m
+// 	}
 
-	progs := make(map[string]*ebpf.Program)
-	for progName, origProgSpec := range spec.Programs {
-		progSpec := origProgSpec.Copy()
-		editor := ebpf.Edit(&progSpec.Instructions)
+// 	progs := make(map[string]*ebpf.Program)
+// 	for progName, origProgSpec := range spec.Programs {
+// 		progSpec := origProgSpec.Copy()
+// 		editor := ebpf.Edit(&progSpec.Instructions)
 
-		// Rewrite any Symbol which is a valid Map.
-		for sym := range editor.ReferenceOffsets {
-			m, ok := maps[sym]
-			if !ok {
-				continue
-			}
+// 		// Rewrite any Symbol which is a valid Map.
+// 		for sym := range editor.ReferenceOffsets {
+// 			m, ok := maps[sym]
+// 			if !ok {
+// 				continue
+// 			}
 
-			// overwrite maps already rewritten
-			if err := editor.RewriteMap(sym, m); err != nil {
-				return nil, errors.Wrapf(err, "program %s", progName)
-			}
-		}
+// 			// overwrite maps already rewritten
+// 			if err := editor.RewriteMap(sym, m); err != nil {
+// 				return nil, errors.Wrapf(err, "program %s", progName)
+// 			}
+// 		}
 
-		prog, err := ebpf.NewProgramWithOptions(progSpec, opts.Programs)
-		if err != nil {
-			return nil, errors.Wrapf(err, "program %s", progName)
-		}
-		progs[progName] = prog
-	}
+// 		prog, err := ebpf.NewProgramWithOptions(progSpec, opts.Programs)
+// 		if err != nil {
+// 			return nil, errors.Wrapf(err, "program %s", progName)
+// 		}
+// 		progs[progName] = prog
+// 	}
 
-	return &ebpf.Collection{
-		progs,
-		maps,
-	}, nil
-}
+// 	return &ebpf.Collection{
+// 		progs,
+// 		maps,
+// 	}, nil
+// }

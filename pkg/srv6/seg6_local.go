@@ -33,7 +33,8 @@ const (
 	SEG6_LOCAL_ACTION_END_S                    // 12
 	SEG6_LOCAL_ACTION_END_AS                   // 13
 	SEG6_LOCAL_ACTION_END_AM                   // 14
-	SEG6_LOCAL_ACTION_T_M_GTP4_E               // 15
+	SEG6_LOCAL_ACTION_T_M_GTP6_E
+	SEG6_LOCAL_ACTION_T_M_GTP4_E
 
 	__SEG6_LOCAL_ACTION_MAX
 )
@@ -41,8 +42,10 @@ const (
 	SEG6_LOCAL_ACTION_MAX = __SEG6_LOCAL_ACTION_MAX - 1
 )
 
+const SEG6_LOCAL_MODE_UNKNOWN = "unknown"
+
 // Helper functions
-func SEG6LocalActionString(action int) string {
+func Seg6LocalActionString(action int) string {
 	switch action {
 	case SEG6_LOCAL_ACTION_END:
 		return "End"
@@ -72,15 +75,17 @@ func SEG6LocalActionString(action int) string {
 		return "End.AS"
 	case SEG6_LOCAL_ACTION_END_AM:
 		return "End.AM"
+	case SEG6_LOCAL_ACTION_T_M_GTP6_E:
+		return "T.M.GTP6.E"
 	case SEG6_LOCAL_ACTION_T_M_GTP4_E:
 		return "T.M.GTP4.E"
 	}
 
-	return "unknown"
+	return SEG6_LOCAL_MODE_UNKNOWN
 }
 
 // Helper functions
-func SEG6LocalActionEnum(name string) uint8 {
+func Seg6LocalActionInt(name string) uint8 {
 	switch name {
 	case "SEG6_LOCAL_ACTION_END":
 		return SEG6_LOCAL_ACTION_END
@@ -110,6 +115,8 @@ func SEG6LocalActionEnum(name string) uint8 {
 		return SEG6_LOCAL_ACTION_END_AS
 	case "SEG6_LOCAL_ACTION_END_AM":
 		return SEG6_LOCAL_ACTION_END_AM
+	case "SEG6_LOCAL_ACTION_T_M_GTP6_E":
+		return SEG6_LOCAL_ACTION_T_M_GTP6_E
 	case "SEG6_LOCAL_ACTION_T_M_GTP4_E":
 		return SEG6_LOCAL_ACTION_T_M_GTP4_E
 	}

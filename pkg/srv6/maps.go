@@ -3,7 +3,7 @@ package srv6
 import (
 	"path"
 
-	"github.com/takehaya/srv6-gtp/xdptool"
+	"github.com/takehaya/vinbero/pkg/xdptool"
 )
 
 const (

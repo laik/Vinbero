@@ -28,7 +28,6 @@ tar -xzvf ./iproute2-5.5.0.tar.gz
 cd ./iproute2-5.5.0
 sudo make && sudo make install
 
-
 cd ~
 sudo ldconfig -v
 git clone git://git.osmocom.org/libgtpnl.git
@@ -47,6 +46,16 @@ git clone --branch $KERNEL_VERSION --depth 1 https://git.kernel.org/pub/scm/linu
 cd linux/tools/bpf
 sudo make
 sudo cp bpftool/bpftool /usr/local/bin/
+
+# golang
+
+wget https://dl.google.com/go/go1.14.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.14.linux-amd64.tar.gz
+echo "export PATH=\$PATH:/usr/local/go/bin" >> /home/toor/.bashrc
+echo "export GOPATH=\$HOME/go" >> /home/toor/.bashrc
+echo "export PATH=\$PATH:\$GOPATH/bin" >> /home/toor/.bashrc
+
+export PATH=$PATH:/usr/local/go/bin
 ```
 
 ## Go Setup
@@ -57,6 +66,6 @@ select archive image(fix terraform file)
 terraform init
 terraform apply
 chmod +x inventry_handler.py
-ssh-keygen  -f ~/.ssh/toor
+ssh-keygen -f ~/.ssh/toor
 ansible-playbook -u ubuntu --private-key=./id_rsa -i inventry_handler.py setup.yml --extra-vars "ansible_sudo_pass=PUT_YOUR_PASSWORD_HERE"
 ```

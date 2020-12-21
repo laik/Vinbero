@@ -7,9 +7,11 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/newtools/ebpf"
-	"github.com/takehaya/srv6-gtp/xdptool"
+	"github.com/cilium/ebpf"
+	"github.com/takehaya/vinbero/pkg/xdptool"
 )
+
+const MaxTxportDevice = 64
 
 type TxPortKey struct {
 	Iface int
@@ -34,6 +36,13 @@ func NewTxPort(coll *ebpf.Collection) (*TxPortsMap, error) {
 		FD:  m.FD(),
 		Map: m,
 	}, nil
+}
+
+func MappingTxPort(m *ebpf.Map) *TxPortsMap {
+	return &TxPortsMap{
+		FD:  m.FD(),
+		Map: m,
+	}
 }
 
 func (m *TxPortsMap) Update(txp TxPort, iface int) error {

@@ -7,8 +7,8 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/newtools/ebpf"
-	"github.com/takehaya/srv6-gtp/xdptool"
+	"github.com/cilium/ebpf"
+	"github.com/takehaya/vinbero/pkg/xdptool"
 )
 
 const MAX_SEGMENTS = 5
