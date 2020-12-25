@@ -27,38 +27,6 @@
 #include "srv6_maps.h"
 #include "srv6_helpers.h"
 
-__attribute__((__always_inline__)) static inline int rewrite_nexthop(struct xdp_md *xdp)
-{
-    void *data = (void *)(long)xdp->data;
-    void *data_end = (void *)(long)xdp->data_end;
-    struct ethhdr *eth = data;
-
-    if (data + sizeof(*eth) > data_end)
-    {
-        return XDP_PASS;
-    }
-
-    __u32 ifindex;
-    __u8 smac[6], dmac[6];
-
-    bool is_exist = lookup_nexthop(xdp, &smac, &dmac, &ifindex);
-    if (is_exist)
-    {
-        set_src_dst_mac(data, &smac, &dmac);
-        if (!bpf_map_lookup_elem(&tx_port, &ifindex))
-            return XDP_PASS;
-
-        if (xdp->ingress_ifindex == ifindex)
-        {
-            bpf_printk("run tx");
-            return XDP_TX;
-        }
-        bpf_printk("go to redirect");
-        return bpf_redirect_map(&tx_port, ifindex, 0);
-    }
-    bpf_printk("failed rewrite nhop");
-    return XDP_PASS;
-}
 
 /* regular endpoint function */
 __attribute__((__always_inline__)) static inline int action_end(struct xdp_md *xdp)
@@ -76,7 +44,7 @@ __attribute__((__always_inline__)) static inline int action_end(struct xdp_md *x
     if (!advance_nextseg(srhdr, &v6h->daddr, xdp))
         return XDP_PASS;
 
-    return rewrite_nexthop(xdp);
+    return rewrite_nexthop(xdp, 0);
 }
 
 /* regular endpoint function */
@@ -206,7 +174,7 @@ __attribute__((__always_inline__)) static inline int action_t_gtp4_d(struct xdp_
     }
 
     bpf_printk("exec nexthop\n");
-    return rewrite_nexthop(xdp);
+    return rewrite_nexthop(xdp, 0);
 }
 
 SEC("xdp_prog")

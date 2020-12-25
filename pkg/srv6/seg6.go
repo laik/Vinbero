@@ -5,7 +5,10 @@ import (
 	"net"
 )
 
-const SEG6_GTPV1_LOC_FUNCTION_MAXSIZE = 56 // == 128 - v4addr(32) - args(40)
+const (
+	SEG6_GTPV1_LOC_FUNCTION_MAXSIZE_ = 56 // == 128 - v4addr(32) - args(40)
+	SEG6_GTPV1_LOC_FUNCTION_MAXSIZE
+)
 
 type IPv6SrHdr struct {
 	nextHdr      uint8
@@ -48,7 +51,7 @@ const (
 const SEG6_ENCAP_MODE_UNKNOWN = "unknown"
 
 // Helper functions
-func SEG6EncapModeString(mode int) string {
+func Seg6EncapModeString(mode int) string {
 	switch mode {
 	case SEG6_IPTUN_MODE_INLINE:
 		return "inline"
@@ -66,7 +69,7 @@ func SEG6EncapModeString(mode int) string {
 	return SEG6_ENCAP_MODE_UNKNOWN
 }
 
-func SEG6EncapModeInt(name string) uint8 {
+func Seg6EncapModeInt(name string) uint8 {
 	switch name {
 	case "SEG6_IPTUN_MODE_INLINE":
 		return SEG6_IPTUN_MODE_INLINE

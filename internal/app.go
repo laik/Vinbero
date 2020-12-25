@@ -92,8 +92,6 @@ func App(c *config.Config) error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 func setTxportDevice(c *config.InternalConfig, m *ebpf.Map) (*srv6.TxPortsMap, error) {
@@ -124,11 +122,7 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 		actId := srv6.Seg6LocalActionInt(fn.Action)
 		if srv6.SEG6_LOCAL_ACTION_MAX == actId {
 			return nil, errors.New(fmt.Sprintf("%v not found", fn.Action))
-		} else if fn.Addr == "" {
-			return nil, errors.New(fmt.Sprintf("addr not found"))
 		}
-		// var convip [16]byte
-		// copy(convip[:], )
 		_, cidr, err := net.ParseCIDR(fn.Addr)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -159,4 +153,62 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 	fmt.Printf("%# v\n", pretty.Formatter(fnm))
 
 	return fnm, nil
+}
+
+func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4sMap, error) {
+	tranv4 := srv6.MappingTransitTablev4(m)
+
+	for _, t4 := range c {
+		actId := srv6.Seg6EncapModeInt(t4.Action)
+		if srv6.SEG6_IPTUNNEL_MAX == actId {
+			return nil, errors.New(fmt.Sprintf("%v not found", t4.Action))
+		}
+		_, cidr, err := net.ParseCIDR(t4.Addr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		prefixlen, _ := cidr.Mask.Size()
+
+		sip := net.ParseIP(t4.SAddr)
+		var convip [4]byte
+		var startSip [16]byte
+		copy(convip[:], cidr.IP.To16())
+		if sip != nil {
+			copy(startSip[:], sip.To16())
+		}
+
+		var newsegments [srv6.MAX_SEGMENTS][16]byte
+		for i, seg := range t4.Segments {
+			var segmentaddr [16]byte
+			copy(segmentaddr[:], net.ParseIP(seg).To16())
+			log.Println("segments addr", i, segmentaddr)
+
+			newsegments[i] = segmentaddr
+		}
+
+		segLen := len(t4.Segments)
+		if srv6.MAX_SEGMENTS < segLen {
+			return nil, errors.New(fmt.Sprintf("Max Segments Entry over. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
+		} else if segLen == 0 {
+			return nil, errors.New(fmt.Sprintf("Length Entry empty. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
+		}
+
+		err = tranv4.Update(
+			srv6.TransitTablev4{
+				Action:         actId,
+				Segment_length: uint32(segLen),
+				Saddr:          startSip,
+				Segments:       newsegments,
+			},
+			convip,
+			uint32(prefixlen),
+		)
+		if err != nil {
+			log.Printf("Unable to Insert into eBPF map: %v", err)
+			return nil, errors.WithStack(err)
+		}
+	}
+	fmt.Printf("%# v\n", pretty.Formatter(tranv4))
+
+	return tranv4, nil
 }

@@ -139,9 +139,8 @@ __attribute__((__always_inline__)) static inline bool advance_nextseg(struct ipv
 }
 
 // WIP: write by only ipv6 type
-__attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_md *xdp, void *smac, void *dmac, __u32 *ifindex)
+__attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_md *xdp, void *smac, void *dmac, __u32 *ifindex, __u32 flag)
 {
-    bpf_printk("run lookup_nexthop\n");
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
@@ -199,7 +198,7 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
     // https://github.com/torvalds/linux/blob/v4.18/include/uapi/linux/bpf.h#L2611
     fib_params.ifindex = xdp->ingress_ifindex;
     // int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT);
-    int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), 0);
+    int rc = bpf_fib_lookup(xdp, &fib_params, sizeof(fib_params), flag);
 
     switch (rc)
     {
@@ -231,4 +230,38 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
     }
     return false;
 }
+
+__attribute__((__always_inline__)) static inline int rewrite_nexthop(struct xdp_md *xdp, __u32 flag)
+{
+    void *data = (void *)(long)xdp->data;
+    void *data_end = (void *)(long)xdp->data_end;
+    struct ethhdr *eth = data;
+
+    if (data + sizeof(*eth) > data_end)
+    {
+        return XDP_PASS;
+    }
+
+    __u32 ifindex;
+    __u8 smac[6], dmac[6];
+
+    bool is_exist = lookup_nexthop(xdp, &smac, &dmac, &ifindex, flag);
+    if (is_exist)
+    {
+        set_src_dst_mac(data, &smac, &dmac);
+        if (!bpf_map_lookup_elem(&tx_port, &ifindex))
+            return XDP_PASS;
+
+        if (xdp->ingress_ifindex == ifindex)
+        {
+            bpf_printk("run tx");
+            return XDP_TX;
+        }
+        bpf_printk("go to redirect");
+        return bpf_redirect_map(&tx_port, ifindex, 0);
+    }
+    bpf_printk("failed rewrite nhop");
+    return XDP_PASS;
+}
+
 #endif

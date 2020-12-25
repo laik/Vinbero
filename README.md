@@ -1,4 +1,5 @@
 # vinbero
+Implementation of SRv6 subset written in XDP
 
 ## Setup
 ```
@@ -21,12 +22,22 @@ done
 ```
 cd include
 wget https://raw.githubusercontent.com/cloudflare/xdpcap/master/hook.h
-# todo: use pushd/pop shellsctipt
 cd ..
-go get -u github.com/rakyll/statik
+make
 ```
 
-## xdpcap
+## Run
+```
+./bin/vinbero
+```
+
+## tips
+### debug
+```
+sudo trace-cmd record -e 'xdp:*' -O trace_printk
+sudo trace-cmd report > trace.log
+```
+### xdpcap
 
 See https://github.com/cloudflare/xdpcap
 
@@ -38,28 +49,21 @@ sudo mount bpffs /sys/fs/bpf -t bpf
 xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 ```
 
-## tips
-### debug
-```
-sudo trace-cmd record -e 'xdp:*' -O trace_printk
-sudo trace-cmd report > trace.log
-```
-
 ## List of SRv6 functions of interest and status (a.k.a. Road Map)
 
 ### Reference list
-* [draft-murakami-dmm-user-plane-message-encoding-02](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-encoding)
-
-* [draft-filsfils-spring-srv6-network-programming-27]https://datatracker.ietf.org/doc/draft-ietf-spring-srv6-network-programming/)
+* [draft-filsfils-spring-srv6-network-programming]（https://datatracker.ietf.org/doc/draft-ietf-spring-srv6-network-programming/)
+* [draft-ietf-dmm-srv6-mobile-uplane](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
+* [draft-murakami-dmm-user-plane-message-encoding](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-encoding)
 
 ### Transit behaviors
 
 | Function | schedule | description |
 |----------|----------|-------------|
 | T | n/a | Transit behavior|
-| T.Insert | Fed, 2020 | |
+| T.Insert | future | |
 | T.Insert.Red | future | |
-| T.Encaps | future | |
+| T.Encaps | Fed, 2020 | |
 | T.Encaps.Red | future | |
 | T.Encaps.L2 | future | |
 | T.Encaps.L2.Red | future | |
@@ -86,12 +90,12 @@ sudo trace-cmd report > trace.log
 | End.S | | |
 | Args.Mob.Session | | Consider with End.MAP, End.DT and End.DX |
 | End.MAP | | |
-| End.M.GTP6.D | Jan, 2021 | GTP-U/IPv6 => SRv6 |
-| End.M.GTP6.D.Di | Jan, 2021 | GTP-U/IPv6 => SRv6 |
+| End.M.GTP6.D | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit　|
+| End.M.GTP6.D.Di | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit |
 | End.M.GTP6.E | Jan, 2021 | SRv6 => GTP-U/IPv6 |
 | End.M.GTP4.D | Jan, 2021 | SRv6 => GTP-U/IPv4 |
-| End.M.GTP4.E | Jan, 2021 | GTP-U/IPv4 => SRv6 |
-| T.M.GTP4.D | Jan, 2021 | GTP-U/IPv4 => SRv6 |
+| End.M.GTP4.E | Jan, 2021 | GTP-U/IPv4 => SRv6. For implementation purposes, it is treated as transit |
+| T.M.GTP4.D | Jan, 2021 | GTP-U/IPv4 => SRv6, For implementation purposes, it is treated as transit|
 | End.Limit | | Rate Limiting function |
 
 ### Non functional design items
@@ -108,3 +112,7 @@ sudo trace-cmd report > trace.log
 | USP | | Ultimate Segment Pop |
 | USD | | Ultimate Segment Decapsulation |
 
+## Respectful implementation
+I'm using these as a reference. thanks:)
+* [p4srv6](https://github.com/ebiken/p4srv6)
+* [linux/samples/bpf](https://github.com/torvalds/linux/tree/master/samples/bpf)
