@@ -5,6 +5,8 @@ import (
 	"net"
 )
 
+const SEG6_GTPV1_LOC_FUNCTION_MAXSIZE = 56 // == 128 - v4addr(32) - args(40)
+
 type IPv6SrHdr struct {
 	nextHdr      uint8
 	hdrLen       uint8
@@ -19,9 +21,12 @@ type IPv6SrHdr struct {
 
 // seg6 encap mode
 const (
-	SEG6_IPTUN_MODE_INLINE           = iota
-	SEG6_IPTUN_MODE_ENCAP            //1
-	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D //2
+	SEG6_IPTUN_MODE_INLINE = iota
+	SEG6_IPTUN_MODE_ENCAP  //1
+	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
+	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di
+	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
+	SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D
 	__SEG6_IPTUN_MODE_MAX
 )
 
@@ -40,6 +45,8 @@ const (
 	SEG6_IPTUNNEL_MAX = __SEG6_IPTUNNEL_MAX - 1
 )
 
+const SEG6_ENCAP_MODE_UNKNOWN = "unknown"
+
 // Helper functions
 func SEG6EncapModeString(mode int) string {
 	switch mode {
@@ -47,10 +54,16 @@ func SEG6EncapModeString(mode int) string {
 		return "inline"
 	case SEG6_IPTUN_MODE_ENCAP:
 		return "encap"
+	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D:
+		return "T.M.GTP6.D"
+	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di:
+		return "T.M.GTP6.D.Di"
 	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D:
 		return "T.M.GTP4.D"
+	case SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D:
+		return "H.M.GTP4.D"
 	}
-	return "unknown"
+	return SEG6_ENCAP_MODE_UNKNOWN
 }
 
 func SEG6EncapModeInt(name string) uint8 {
@@ -59,6 +72,10 @@ func SEG6EncapModeInt(name string) uint8 {
 		return SEG6_IPTUN_MODE_INLINE
 	case "SEG6_IPTUN_MODE_ENCAP":
 		return SEG6_IPTUN_MODE_INLINE
+	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D":
+		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
+	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di":
+		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di
 	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D":
 		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
 	}

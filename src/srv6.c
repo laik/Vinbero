@@ -1,4 +1,5 @@
 #define KBUILD_MODNAME "xdp_srv6_functions"
+#include <stdbool.h>
 #include <stddef.h>
 #include <linux/bpf.h>
 #include <linux/in.h>
@@ -13,7 +14,6 @@
 #include <linux/udp.h>
 #include "bpf_helpers.h"
 #include "bpf_endian.h"
-#include "hook.h"
 
 // linux/socket.h
 #define AF_INET 2   /* Internet IP Protocol 	*/
@@ -22,36 +22,12 @@
 // net/ipv6.h
 #define NEXTHDR_ROUTING 43 /* Routing header. */
 
-// #include "srv6_maps.h"
-#include "srv6_structs.h"
 #include "srv6_consts.h"
+#include "srv6_structs.h"
+#include "srv6_maps.h"
 #include "srv6_helpers.h"
 
-struct bpf_map_def SEC("maps") tx_port = {
-    .type = BPF_MAP_TYPE_DEVMAP,
-    .key_size = sizeof(int),
-    .value_size = sizeof(int),
-    .max_entries = 256,
-};
-
-struct bpf_map_def SEC("maps") transit_table_v4 = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct transit_behavior),
-    .max_entries = MAX_TRANSIT_ENTRIES,
-};
-
-struct bpf_map_def SEC("maps") function_table = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(struct in6_addr),
-    .value_size = sizeof(struct end_function),
-    .max_entries = MAX_END_FUNCTION_ENTRIES,
-};
-
-// https://github.com/cloudflare/xdpcap
-struct bpf_map_def SEC("maps") xdpcap_hook = XDPCAP_HOOK();
-
-static inline int rewrite_nexthop(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline int rewrite_nexthop(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
@@ -62,32 +38,30 @@ static inline int rewrite_nexthop(struct xdp_md *xdp)
         return XDP_PASS;
     }
 
-    // struct lookup_result result = {};
     __u32 ifindex;
-    unsigned short smac;
-    unsigned short dmac;
+    __u8 smac[6], dmac[6];
 
-    lookup_nexthop(xdp, &smac, &dmac, &ifindex);
-    bpf_printk("check_lookup_result\n");
-    if (check_lookup_result(&dmac))
+    bool is_exist = lookup_nexthop(xdp, &smac, &dmac, &ifindex);
+    if (is_exist)
     {
-        bpf_printk("check_lookup_result match\n");
         set_src_dst_mac(data, &smac, &dmac);
+        if (!bpf_map_lookup_elem(&tx_port, &ifindex))
+            return XDP_PASS;
 
         if (xdp->ingress_ifindex == ifindex)
         {
-            bpf_printk("select TX\n");
+            bpf_printk("run tx");
             return XDP_TX;
         }
-        bpf_printk("select bpf_redirect_map\n");
-        // todo: fix bpf_redirect_map
+        bpf_printk("go to redirect");
         return bpf_redirect_map(&tx_port, ifindex, 0);
     }
+    bpf_printk("failed rewrite nhop");
     return XDP_PASS;
 }
 
 /* regular endpoint function */
-static inline int action_end(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline int action_end(struct xdp_md *xdp)
 {
     bpf_printk("run action_end\n");
     void *data = (void *)(long)xdp->data;
@@ -97,19 +71,16 @@ static inline int action_end(struct xdp_md *xdp)
     struct ipv6hdr *v6h = get_ipv6(xdp);
 
     if (!srhdr || !v6h)
-    {
         return XDP_PASS;
-    }
+
     if (!advance_nextseg(srhdr, &v6h->daddr, xdp))
-    {
         return XDP_PASS;
-    }
 
     return rewrite_nexthop(xdp);
 }
 
 /* regular endpoint function */
-static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *tb)
+__attribute__((__always_inline__)) static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *tb)
 {
     // chack UDP/GTP packet
     void *data = (void *)(long)xdp->data;
@@ -241,7 +212,6 @@ static inline int action_t_gtp4_d(struct xdp_md *xdp, struct transit_behavior *t
 SEC("xdp_prog")
 int srv6_handler(struct xdp_md *xdp)
 {
-    bpf_printk("srv6_handler start");
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
@@ -249,49 +219,45 @@ int srv6_handler(struct xdp_md *xdp)
     struct ipv6hdr *v6h = get_ipv6(xdp);
     struct end_function *ef_table;
     struct transit_behavior *tb;
-
+    struct lpm_key_v4 v4key;
+    struct lpm_key_v6 v6key;
     __u16 h_proto;
 
     if (data + sizeof(*eth) > data_end)
     {
-        bpf_printk("data_end 1\n");
         return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
     }
     if (!iph || !v6h)
     {
-        bpf_printk("data_end 2\n");
         return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
     }
 
     h_proto = eth->h_proto;
-    bpf_printk("srv6_handler L3 check\n");
     if (h_proto == bpf_htons(ETH_P_IP))
     {
         // use encap
-        bpf_printk("h_proto == bpf_htons(ETH_P_IP)\n");
-        tb = bpf_map_lookup_elem(&transit_table_v4, &iph->daddr);
+        v4key.prefixlen = 32;
+        v4key.addr = iph->daddr;
+        tb = bpf_map_lookup_elem(&transit_table_v4, &v4key);
         if (tb)
         {
-            bpf_printk("run transit_table_v4 lookup!\n");
             switch (tb->action)
             {
             case SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D:
-                bpf_printk("run SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D\n");
                 return xdpcap_exit(xdp, &xdpcap_hook, action_t_gtp4_d(xdp, tb));
             }
         }
     }
     else if (h_proto == bpf_htons(ETH_P_IPV6))
     {
-        // use nexthop and exec to function or decap or encap
-        // checkSRv6
+        v6key.prefixlen = 128;
+        v6key.addr = v6h->daddr;
         if (v6h->nexthdr == NEXTHDR_ROUTING)
         {
-            bpf_printk("match v6h->nexthdr == NEXTHDR_ROUTING)\n");
-            ef_table = bpf_map_lookup_elem(&function_table, &(v6h->daddr));
+            // use nexthop and exec to function or decap or encap
+            ef_table = bpf_map_lookup_elem(&function_table, &v6key);
             if (ef_table)
             {
-                bpf_printk("ef_table check %u", ef_table);
                 switch (ef_table->function)
                 {
                 case SEG6_LOCAL_ACTION_END:
@@ -301,9 +267,17 @@ int srv6_handler(struct xdp_md *xdp)
         }
         else
         {
-            // todo::
             // encap type code
-            // encap check condtion
+            tb = bpf_map_lookup_elem(&transit_table_v6, &v6key);
+            if (tb)
+            {
+                switch (tb->action)
+                {
+                case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D:
+                    // bpf_printk("run SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D\n");
+                    return xdpcap_exit(xdp, &xdpcap_hook, action_t_gtp4_d(xdp, tb));
+                }
+            }
         }
     }
     bpf_printk("no match all\n");

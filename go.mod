@@ -1,12 +1,13 @@
-module github.com/takehaya/srv6-gtp
+module github.com/takehaya/vinbero
 
-go 1.13
+go 1.14
 
 require (
-	github.com/dropbox/goebpf v0.0.0-20200108231457-09ee551945e7 // indirect
-	github.com/newtools/ebpf v0.1.0
+	github.com/cilium/ebpf v0.3.0
+	github.com/kr/pretty v0.2.1
 	github.com/pkg/errors v0.9.1
+	github.com/urfave/cli v1.22.5
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.0.0-20190606203320-7fc4e5ec1444
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	gopkg.in/yaml.v2 v2.2.7
 )

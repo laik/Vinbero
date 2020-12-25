@@ -1,22 +1,24 @@
 package srv6
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"unsafe"
 
-	"github.com/newtools/ebpf"
-	"github.com/takehaya/srv6-gtp/xdptool"
+	"github.com/pkg/errors"
+
+	"github.com/cilium/ebpf"
+	"github.com/takehaya/vinbero/pkg/xdptool"
 )
 
 type FunctionTableKey struct {
-	Daddr [16]byte
+	Prefixlen uint32
+	Daddr     [16]uint8
 }
 
 type FunctionTable struct {
-	Function uint8
+	StartSaddr [16]uint8
+	Function   uint32
 }
 
 type FunctionTablesMap struct {
@@ -25,7 +27,6 @@ type FunctionTablesMap struct {
 }
 
 func NewFunctionTable(coll *ebpf.Collection) (*FunctionTablesMap, error) {
-	log.Println("%v", coll)
 	m, ok := coll.Maps[STR_FunctionTable]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("%v not found", STR_FunctionTable))
@@ -36,18 +37,29 @@ func NewFunctionTable(coll *ebpf.Collection) (*FunctionTablesMap, error) {
 	}, nil
 }
 
-func (m *FunctionTablesMap) Update(fn FunctionTable, ip [16]byte) error {
-	entry := make([]FunctionTable, xdptool.PossibleCpus)
-	for i := 0; i < xdptool.PossibleCpus; i++ {
-		entry[i] = fn
+func MappingFunctionTable(m *ebpf.Map) *FunctionTablesMap {
+	return &FunctionTablesMap{
+		FD:  m.FD(),
+		Map: m,
 	}
-
-	key := FunctionTableKey{Daddr: ip}
-	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
 }
 
-func (m *FunctionTablesMap) Get(ip [16]byte) (*FunctionTable, error) {
-	key := FunctionTableKey{Daddr: ip}
+func (m *FunctionTablesMap) Update(fn FunctionTable, ip [16]byte, prefix uint32) error {
+	key := FunctionTableKey{
+		Daddr:     ip,
+		Prefixlen: prefix,
+	}
+	if err := m.Map.Put(key, fn); err != nil {
+		return errors.WithMessage(err, "Can't put function table map")
+	}
+	return nil
+}
+
+func (m *FunctionTablesMap) Get(ip [16]byte, prefix uint32) (*FunctionTable, error) {
+	key := FunctionTableKey{
+		Daddr:     ip,
+		Prefixlen: prefix,
+	}
 	entry := make([]FunctionTable, xdptool.PossibleCpus)
 	err := xdptool.LookupElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]))
 	if err != nil {
@@ -56,8 +68,11 @@ func (m *FunctionTablesMap) Get(ip [16]byte) (*FunctionTable, error) {
 	return &entry[0], nil
 }
 
-func (m *FunctionTablesMap) Delete(ip [16]byte) error {
-	key := FunctionTableKey{Daddr: ip}
+func (m *FunctionTablesMap) Delete(ip [16]byte, prefix uint32) error {
+	key := FunctionTableKey{
+		Daddr:     ip,
+		Prefixlen: prefix,
+	}
 	return xdptool.DeleteElement(m.FD, unsafe.Pointer(&key))
 }
 

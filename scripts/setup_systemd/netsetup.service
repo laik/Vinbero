@@ -3,8 +3,7 @@ Description = iproute2 auto start daemon
 
 [Service]
 ExecStart = /opt/netsetup.sh
-Restart = no
-Type = simple
+Type=oneshot
 
 [Install]
 WantedBy = multi-user.target

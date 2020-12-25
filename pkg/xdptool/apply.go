@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/newtools/ebpf"
+	"github.com/cilium/ebpf"
 	"github.com/pkg/errors"
 	"github.com/vishvananda/netlink"
 )
@@ -28,13 +28,7 @@ func LoadElf(filepath string) (*ebpf.Collection, error) {
 	return coll, nil
 }
 
-func Attach(coll *ebpf.Collection, attach_func string, device string) error {
-
-	prog, ok := coll.Programs[attach_func]
-	if !ok {
-		fmt.Println()
-		return errors.New(fmt.Sprintf("%s not found in object", attach_func))
-	}
+func Attach(prog *ebpf.Program, device string) error {
 	link, err := netlink.LinkByName(device)
 	if err != nil {
 		return errors.New(fmt.Sprintf("%s not found in object", device))

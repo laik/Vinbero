@@ -13,9 +13,9 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/takehaya/srv6-gtp/srv6"
-	"github.com/takehaya/srv6-gtp/version"
-	"github.com/takehaya/srv6-gtp/xdptool"
+	"github.com/takehaya/vinbero/srv6"
+	"github.com/takehaya/vinbero/version"
+	"github.com/takehaya/vinbero/xdptool"
 
 	"gopkg.in/yaml.v2"
 )
@@ -150,7 +150,7 @@ func run() error {
 		for _, fn := range funcs {
 			action := fn.Action
 			addr := fn.Addr
-			fn_enum := srv6.SEG6LocalActionEnum(action)
+			fn_enum := srv6.Seg6LocalActionEnum(action)
 			if srv6.SEG6_LOCAL_ACTION_MAX == fn_enum {
 				return errors.New(fmt.Sprintf("%v not found", action))
 			}
