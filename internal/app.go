@@ -43,15 +43,13 @@ func App(c *config.Config) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	fmt.Printf("%# v\n", pretty.Formatter(c))
-
 	txm, err := setTxportDevice(&c.InternalConfig, obj.MapTxPort)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	var srfn *srv6.FunctionTablesMap
 	fmt.Printf("%# v\n", pretty.Formatter(txm))
 
+	var srfn *srv6.FunctionTablesMap
 	if funcs := c.Setting.Functions; 0 < len(funcs) {
 		srfn, err = setSrv6Function(funcs, obj.MapFunctionTable)
 		if err != nil {
@@ -59,6 +57,15 @@ func App(c *config.Config) error {
 		}
 	}
 	fmt.Printf("%# v\n", pretty.Formatter(srfn))
+
+	var tran4 *srv6.TransitTablev4sMap
+	if t4c := c.Setting.Transitv4; 0 < len(t4c) {
+		tran4, err = setTransitv4(t4c, obj.MapTransitTableV4)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	fmt.Printf("%# v\n", pretty.Formatter(tran4))
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -169,7 +176,7 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 
 	for _, t4 := range c {
 		actId := srv6.Seg6EncapModeInt(t4.Action)
-		if srv6.SEG6_IPTUNNEL_MAX == actId {
+		if srv6.SEG6_IPTUN_MODE_MAX == actId {
 			return nil, errors.New(fmt.Sprintf("%v not found", t4.Action))
 		}
 		_, cidr, err := net.ParseCIDR(t4.Addr)
@@ -181,7 +188,7 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 		sip := net.ParseIP(t4.SAddr)
 		var convip [4]byte
 		var startSip [16]byte
-		copy(convip[:], cidr.IP.To16())
+		copy(convip[:], cidr.IP.To4())
 		if sip != nil {
 			copy(startSip[:], sip.To16())
 		}
@@ -193,6 +200,7 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 			log.Println("segments addr", i, segmentaddr)
 
 			newsegments[i] = segmentaddr
+			fmt.Println("seg: ", newsegments[i])
 		}
 
 		segLen := len(t4.Segments)
@@ -204,10 +212,10 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 
 		err = tranv4.Update(
 			srv6.TransitTablev4{
-				Action:         actId,
-				Segment_length: uint32(segLen),
-				Saddr:          startSip,
-				Segments:       newsegments,
+				Action:        uint32(actId),
+				SegmentLength: uint32(segLen),
+				Saddr:         startSip,
+				Segments:      newsegments,
 			},
 			convip,
 			uint32(prefixlen),

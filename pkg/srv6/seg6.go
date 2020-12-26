@@ -38,18 +38,7 @@ const (
 	SEG6_IPTUN_MODE_MAX = __SEG6_IPTUN_MODE_MAX
 )
 
-// number of nested RTATTR
-// from include/uapi/linux/seg6_iptunnel.h
-const (
-	SEG6_IPTUNNEL_UNSPEC = iota
-	SEG6_IPTUNNEL_SRH
-	__SEG6_IPTUNNEL_MAX
-)
-const (
-	SEG6_IPTUNNEL_MAX = __SEG6_IPTUNNEL_MAX - 1
-)
-
-const SEG6_ENCAP_MODE_UNKNOWN = "unknown"
+const SEG6_IPTUN_MODE_UNKNOWN = "unknown"
 
 // Helper functions
 func Seg6EncapModeString(mode int) string {
@@ -69,7 +58,7 @@ func Seg6EncapModeString(mode int) string {
 	case SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D:
 		return "H.M.GTP4.D"
 	}
-	return SEG6_ENCAP_MODE_UNKNOWN
+	return SEG6_IPTUN_MODE_UNKNOWN
 }
 
 func Seg6EncapModeInt(name string) uint8 {
@@ -77,7 +66,7 @@ func Seg6EncapModeInt(name string) uint8 {
 	case "SEG6_IPTUN_MODE_INLINE":
 		return SEG6_IPTUN_MODE_INLINE
 	case "SEG6_IPTUN_MODE_ENCAP":
-		return SEG6_IPTUN_MODE_INLINE
+		return SEG6_IPTUN_MODE_ENCAP
 	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D":
 		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
 	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di":

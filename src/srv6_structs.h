@@ -7,10 +7,10 @@
 
 struct transit_behavior
 {
-    __u8 action;
-    __u32 segment_length;
     struct in6_addr saddr;
     struct in6_addr segments[MAX_SEGMENTS];
+    __u32 segment_length;
+    __u32 action;
 };
 
 struct lpm_key_v4

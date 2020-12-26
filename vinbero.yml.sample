@@ -27,8 +27,9 @@ settings:
       addr: 172.0.2.0/24
       actionSourceAddr: fc00:1::1
       segments:
-        - fc00:2::1
-        - fc00:3::3
+        - fc00:3::3 # last arrive next hop
+        - <many...>
+        - fc00:2::1 # fast arrive next hop
   transitv6:
     - action: SEG6_IPTUN_MODE_ENCAP
       addr: fd00:1::1/64
