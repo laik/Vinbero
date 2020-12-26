@@ -14,6 +14,10 @@ P4SRC   := "switch.p4"
 build: $(SRCS) gen
 	go build $(LDFLAGS) -o ./bin/$(NAME) ./cmd/$(NAME)
 
+.PHONY: gtp
+gtp:
+	go build $(LDFLAGS) -o ./bin/gtptools ./cmd/gtptools
+
 .PHONY: run
 run:
 	go run $(LDFLAGS) ./cmd/$(NAME)

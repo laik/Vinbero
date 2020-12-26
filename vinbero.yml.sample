@@ -1,17 +1,27 @@
+# This is an explanation of what each parameter means.
 internal:
-  # logfile: "/var/log/vinbero.log"
-  logfile: "./vinbero.log"
-  development: false
-  devices:
+  logfile: "./vinbero.log"　# logging file output place
+  development: false # devlopting only. loglevel up and packetdump ... etc meaning
+  devices: # nic interface name
     - eth1
     - eth2
 settings:
   functions:
     - action: SEG6_LOCAL_ACTION_END
       addr: fc00:2::1/128
-      actionSourceAddr: fc00:1::1
-    - action: SEG6_LOCAL_ACTION_END
-      addr: fc00:2::2/128
+      actionSourceAddr: fc00:1::1 # optional
+    - action: SEG6_LOCAL_ACTION_END_DX6
+      addr: fc00:2::1/128
+      nexthop: fd00:2::1
+      actionSourceAddr: fd00:2::2
+    - action: SEG6_LOCAL_ACTION_END_DX4
+      addr: fc00:2::1/128
+      nexthop: 172.0.1.1
+      actionSourceAddr: 172.0.1.2
+    - action: SEG6_LOCAL_ACTION_END_DT4 # not impli
+      addr: fc00:2::1/128
+      nexthop: 172.0.1.0/24
+      actionSourceAddr: 172.0.1.2
   transitv4:
     - action: SEG6_IPTUN_MODE_ENCAP
       addr: 172.0.2.0/24

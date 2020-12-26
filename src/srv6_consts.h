@@ -1,9 +1,18 @@
 #ifndef __SRV6_CONSTS_H
 #define __SRV6_CONSTS_H
 #include "bpf_endian.h"
+
+#define NextFIBCheck 10000
+
 // linux/socket.h
 #define AF_INET 2   /* Internet IP Protocol 	*/
 #define AF_INET6 10 /* IP version 6			*/
+
+#define ETH_P_8021Q 0x8100  /* 802.1Q VLAN Extended Header  */
+#define ETH_P_8021AD 0x88A8 /* 802.1ad Service VLAN     */
+#define ETH_P_ARP 0x0806
+#define ETH_P_IPV4 0x0800
+#define ETH_P_IPV6 0x86DD
 
 // net/ipv6.h
 #define NEXTHDR_ROUTING 43 /* Routing header. */

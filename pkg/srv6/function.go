@@ -18,6 +18,7 @@ type FunctionTableKey struct {
 
 type FunctionTable struct {
 	StartSaddr [16]uint8
+	Nexthop    [16]uint8
 	Function   uint32
 }
 

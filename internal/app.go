@@ -130,16 +130,25 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 		prefixlen, _ := cidr.Mask.Size()
 
 		sip := net.ParseIP(fn.SAddr)
-		var convip, startSip [16]byte
+		var convip, startSip, nhpip [16]byte
 		copy(convip[:], cidr.IP.To16())
 		if sip != nil {
 			copy(startSip[:], sip.To16())
 		}
-		fmt.Println(startSip)
+		switch actId {
+		case srv6.SEG6_LOCAL_ACTION_END_DX4:
+			nip := net.ParseIP(fn.Nexthop)
+			copy(nhpip[:], nip.To4())
+		case srv6.SEG6_LOCAL_ACTION_END_DX6:
+			nip := net.ParseIP(fn.Nexthop)
+			copy(nhpip[:], nip.To16())
+		}
+
 		err = fnm.Update(
 			srv6.FunctionTable{
 				Function:   uint32(actId),
 				StartSaddr: startSip,
+				Nexthop:    nhpip,
 			},
 			convip,
 			uint32(prefixlen),

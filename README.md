@@ -7,8 +7,8 @@ ulimit -l unlimited
 
 # if "ulimit -l unlimited" is not working when plz check
 # https://bbs.archlinux.org/viewtopic.php?pid=1828148#p1828148
-# echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/system.conf
-# echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/user.conf
+echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/system.conf
+echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/user.conf
 ```
 
 remove offload
@@ -42,6 +42,7 @@ sudo trace-cmd report > trace.log
 See https://github.com/cloudflare/xdpcap
 
 ```
+sudo apt-get install libpcap-dev
 # run on each nodes
 sudo mount bpffs /sys/fs/bpf -t bpf
 
@@ -52,7 +53,7 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 ## List of SRv6 functions of interest and status (a.k.a. Road Map)
 
 ### Reference list
-* [draft-filsfils-spring-srv6-network-programming]（https://datatracker.ietf.org/doc/draft-ietf-spring-srv6-network-programming/)
+* [draft-filsfils-spring-srv6-network-programming](https://datatracker.ietf.org/doc/draft-ietf-spring-srv6-network-programming/)
 * [draft-ietf-dmm-srv6-mobile-uplane](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
 * [draft-murakami-dmm-user-plane-message-encoding](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-encoding)
 

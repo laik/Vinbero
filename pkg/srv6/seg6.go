@@ -25,7 +25,8 @@ type IPv6SrHdr struct {
 // seg6 encap mode
 const (
 	SEG6_IPTUN_MODE_INLINE = iota
-	SEG6_IPTUN_MODE_ENCAP  //1
+	SEG6_IPTUN_MODE_ENCAP
+	SEG6_IPTUN_MODE_L2ENCAP
 	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
 	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di
 	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
@@ -54,9 +55,11 @@ const SEG6_ENCAP_MODE_UNKNOWN = "unknown"
 func Seg6EncapModeString(mode int) string {
 	switch mode {
 	case SEG6_IPTUN_MODE_INLINE:
-		return "inline"
+		return "T.Insert"
 	case SEG6_IPTUN_MODE_ENCAP:
-		return "encap"
+		return "T.Encaps"
+	case SEG6_IPTUN_MODE_L2ENCAP:
+		return "T.Encaps.L2"
 	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D:
 		return "T.M.GTP6.D"
 	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di:
