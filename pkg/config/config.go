@@ -69,9 +69,10 @@ type SettingConfig struct {
 }
 
 type FunctionsConfig struct {
-	Action string `yaml:"action,omitempty"`
-	Addr   string `yaml:"addr,omitempty"`
-	SAddr  string `yaml:"actionSourceAddr,omitempty"`
+	Action  string `yaml:"action,omitempty"`
+	Addr    string `yaml:"addr,omitempty"`
+	SAddr   string `yaml:"actionSourceAddr,omitempty"`
+	Nexthop string `yaml:"nexthop,omitempty"`
 }
 
 type Transitv4Config struct {

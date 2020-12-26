@@ -7,18 +7,29 @@ internal:
     - eth2
 settings:
   functions:
-    - action: SEG6_LOCAL_ACTION_END
-      addr: fc00:2::1/128
-      actionSourceAddr: fc00:1::1
-    - action: SEG6_LOCAL_ACTION_END
-      addr: fc00:2::2/128
-  # transitv4:
-  #   - action: SEG6_IPTUN_MODE_ENCAP
-  #     addr: 172.0.2.0/24
+    - action: SEG6_LOCAL_ACTION_END_DX4
+      addr: fc00:3::3/128
+      nexthop: 172.0.2.1
+      # actionSourceAddr: 172.0.1.2
+  # functions:
+  #   - action: SEG6_LOCAL_ACTION_END
+  #     addr: fc00:2::1/128
   #     actionSourceAddr: fc00:1::1
-  #     segments:
-  #       - fc00:2::1
-  #       - fc00:3::3
+  #   - action: SEG6_LOCAL_ACTION_END
+  #     addr: fc00:2::2/128
+  transitv4:
+    # - action: SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
+    #   addr: 172.0.2.0/24
+    #   actionSourceAddr: fc00:1::1
+    #   segments:
+    #     - fc00:2::1
+    #     - fc00:3::3
+    - action: SEG6_IPTUN_MODE_ENCAP
+      addr: 172.0.1.0/24
+      actionSourceAddr: fc00:3::3
+      segments:
+        - fc00:1::1 # last arrive next hop
+        - fc00:2::1
   # transitv6:
   #   - action: SEG6_IPTUN_MODE_ENCAP
   #     addr: fd00:1::1/64

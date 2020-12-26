@@ -7,10 +7,10 @@
 
 struct transit_behavior
 {
-    __u8 action;
-    __u32 segment_length;
     struct in6_addr saddr;
     struct in6_addr segments[MAX_SEGMENTS];
+    __u32 segment_length;
+    __u32 action;
 };
 
 struct lpm_key_v4
@@ -28,6 +28,15 @@ struct lpm_key_v6
 struct end_function
 {
     __u32 saddr[4];
+    union
+    {
+        __u32 v6addr[4];
+        struct v4
+        {
+            __u32 addr;
+            __u32 padding[3];
+        } v4;
+    } nexthop;
     // The reason why the "__u32 function" is not "__u8" is that it also serves as padding.
     // The cilium/ebpf package assumes that the go structure takes 4 bytes each and does not pack.
     __u32 function;
@@ -43,9 +52,9 @@ struct srhhdr
     __u8 segmentsLeft;
     __u8 lastEntry;
     __u8 flags;
-    __u8 tag;
+    __u16 tag;
     // cf. 5.3. Encoding of Tags Field/ https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-encoding
-    __u8 gtpMessageType : 4; // least significant 4 bits of tag field
+    // __u8 gtpMessageType : 4; // least significant 4 bits of tag field
     struct in6_addr segments[0];
 };
 

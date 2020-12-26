@@ -8,6 +8,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli v1.22.5
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	github.com/wmnsk/go-gtp v0.7.15
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 	gopkg.in/yaml.v2 v2.2.7
 )

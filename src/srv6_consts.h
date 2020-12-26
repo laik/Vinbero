@@ -1,9 +1,19 @@
 #ifndef __SRV6_CONSTS_H
 #define __SRV6_CONSTS_H
 #include "bpf_endian.h"
+
+// user define fib ctl value
+#define NextFIBCheck 10000
+
 // linux/socket.h
 #define AF_INET 2   /* Internet IP Protocol 	*/
 #define AF_INET6 10 /* IP version 6			*/
+
+#define ETH_P_8021Q 0x8100  /* 802.1Q VLAN Extended Header  */
+#define ETH_P_8021AD 0x88A8 /* 802.1ad Service VLAN     */
+#define ETH_P_ARP 0x0806
+#define ETH_P_IPV4 0x0800
+#define ETH_P_IPV6 0x86DD
 
 // net/ipv6.h
 #define NEXTHDR_ROUTING 43 /* Routing header. */
@@ -14,13 +24,28 @@
 #define MAX_END_FUNCTION_ENTRIES 65536
 #define MAX_SEGMENTS 5
 
+// srh flag
+#define SR6_FLAG1_PROTECTED (1 << 6)
+#define SR6_FLAG1_OAM (1 << 5)
+#define SR6_FLAG1_ALERT (1 << 4)
+#define SR6_FLAG1_HMAC (1 << 3)
+
+#define SR6_TLV_INGRESS 1
+#define SR6_TLV_EGRESS 2
+#define SR6_TLV_OPAQUE 3
+#define SR6_TLV_PADDING 4
+#define SR6_TLV_HMAC 5
+
+#define sr_has_hmac(srh) ((srh)->flags & SR6_FLAG1_HMAC)
+
 //Encap define
 #define SEG6_IPTUN_MODE_INLINE 0
 #define SEG6_IPTUN_MODE_ENCAP 1
-#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D 2
-#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di 3
-#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D 4
-#define SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D 5
+#define SEG6_IPTUN_MODE_L2ENCAP 2
+#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D 3
+#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di 4
+#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D 5
+#define SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D 6
 
 // Function define(e.g. Decap, segleft...)
 #define SEG6_LOCAL_ACTION_END 1

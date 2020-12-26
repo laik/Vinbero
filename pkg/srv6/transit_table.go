@@ -1,11 +1,11 @@
 package srv6
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"unsafe"
+
+	"github.com/pkg/errors"
 
 	"github.com/cilium/ebpf"
 	"github.com/takehaya/vinbero/pkg/xdptool"
@@ -14,14 +14,15 @@ import (
 const MAX_SEGMENTS = 5
 
 type TransitTablev4Key struct {
-	Daddr [4]byte
+	Prefixlen uint32
+	Daddr     [4]byte
 }
 
 type TransitTablev4 struct {
-	Action         uint8
-	Segment_length uint32
-	Saddr          [16]byte
-	Segments       [MAX_SEGMENTS][16]byte
+	Saddr         [16]byte
+	Segments      [MAX_SEGMENTS][16]byte
+	SegmentLength uint32
+	Action        uint32
 }
 
 type TransitTablev4sMap struct {
@@ -30,7 +31,6 @@ type TransitTablev4sMap struct {
 }
 
 func NewTransitTablev4(coll *ebpf.Collection) (*TransitTablev4sMap, error) {
-	log.Println("%v", coll)
 	m, ok := coll.Maps[STR_TransitTablev4]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("%v not found", STR_TransitTablev4))
@@ -41,14 +41,22 @@ func NewTransitTablev4(coll *ebpf.Collection) (*TransitTablev4sMap, error) {
 	}, nil
 }
 
-func (m *TransitTablev4sMap) Update(v4table TransitTablev4, ip [4]byte) error {
-	entry := make([]TransitTablev4, xdptool.PossibleCpus)
-	for i := 0; i < xdptool.PossibleCpus; i++ {
-		entry[i] = v4table
+func MappingTransitTablev4(m *ebpf.Map) *TransitTablev4sMap {
+	return &TransitTablev4sMap{
+		FD:  m.FD(),
+		Map: m,
 	}
+}
 
-	key := TransitTablev4Key{Daddr: ip}
-	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
+func (m *TransitTablev4sMap) Update(v4table TransitTablev4, ip [4]byte, prefix uint32) error {
+	key := TransitTablev4Key{
+		Daddr:     ip,
+		Prefixlen: prefix,
+	}
+	if err := m.Map.Put(key, v4table); err != nil {
+		return errors.WithMessage(err, "Can't put function table map")
+	}
+	return nil
 }
 
 func (m *TransitTablev4sMap) Get(ip [4]byte) (*TransitTablev4, error) {
