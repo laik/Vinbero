@@ -23,6 +23,8 @@
 #define MAX_TRANSIT_ENTRIES 256
 #define MAX_END_FUNCTION_ENTRIES 65536
 #define MAX_SEGMENTS 5
+#define MAX_GTP4_SRCADDR_PREFIX 96
+#define MAX_GTP4_DSTADDR_PREFIX 56
 
 // srh flag
 #define SR6_FLAG1_PROTECTED (1 << 6)
@@ -44,8 +46,13 @@
 #define SEG6_IPTUN_MODE_L2ENCAP 2
 #define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D 3
 #define SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di 4
-#define SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D 5
-#define SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D 6
+#define SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D 5
+
+// END($|X|T) case using
+#define SEG6_LOCAL_FLAVER_NONE 1
+#define SEG6_LOCAL_FLAVER_PSP 2
+#define SEG6_LOCAL_FLAVER_USP 3
+#define SEG6_LOCAL_FLAVER_USD 4
 
 // Function define(e.g. Decap, segleft...)
 #define SEG6_LOCAL_ACTION_END 1
@@ -62,17 +69,17 @@
 #define SEG6_LOCAL_ACTION_END_S 12
 #define SEG6_LOCAL_ACTION_END_AS 13
 #define SEG6_LOCAL_ACTION_END_AM 14
-#define SEG6_LOCAL_ACTION_T_M_GTP6_E 15
-#define SEG6_LOCAL_ACTION_T_M_GTP4_E 16
+#define SEG6_LOCAL_ACTION_END_M_GTP6_E 15
+#define SEG6_LOCAL_ACTION_END_M_GTP4_E 16
 
 #define IPV6_FLOWINFO_MASK __bpf_htonl(0x0FFFFFFF)
 
 // GTP User Data Messages (GTPv1)
 // 3GPP TS 29.060 "Table 1: Messages in GTP"
-#define GTPV1_ECHO = 1;    // Echo Request
-#define GTPV1_ECHORES = 2; // Echo Response
-#define GTPV1_ERROR = 26;  // Error Indication
-#define GTPV1_END = 254;   // End Marker
-#define GTPV1_GPDU = 255;  // G-PDU
+#define GTPV1_ECHO 1    // Echo Request
+#define GTPV1_ECHORES 2 // Echo Response
+#define GTPV1_ERROR 26  // Error Indication
+#define GTPV1_END 254   // End Marker
+#define GTPV1_GPDU 255  // G-PDU
 
 #endif

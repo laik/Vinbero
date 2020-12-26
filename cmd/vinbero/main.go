@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -42,16 +43,20 @@ func run(ctx *cli.Context) error {
 	configfile := ctx.String("configfile")
 
 	if !utils.FileExists(configfile) {
-		log.Fatalf("configfile file not found: %s\nHave you run 'make'?", configfile)
+		return errors.WithStack(fmt.Errorf("configfile file not found: %s", configfile))
 	}
 	c, err := config.LoadFile(configfile)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	err = c.Validate()
+	if err != nil {
+		return errors.WithStack(err)
+	}
 	err = internal.App(c)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil

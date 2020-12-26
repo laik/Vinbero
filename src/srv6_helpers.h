@@ -16,6 +16,36 @@
 #include "bpf_endian.h"
 #include "srv6_consts.h"
 
+__attribute__((__always_inline__)) static inline void write_v6addr_in_pyload(
+    struct in6_addr *v6addr, __u8 *pyload, const __u16 py_size, const __u16 offset, const __u16 shift, __u32 *data_end)
+{
+    if (sizeof(struct in6_addr) <= offset || sizeof(struct in6_addr) <= py_size + offset || offset < 0 || (void *)(long)v6addr + offset + py_size + 1 > data_end)
+        return;
+    if (shift == 0)
+    {
+        __builtin_memcpy(&v6addr->s6_addr[offset], pyload, py_size);
+    }
+    else
+    {
+#pragma clang loop unroll(disable)
+        for (int index = 0; index < sizeof(struct in6_addr); index++)
+        {
+            if ((void *)(long)v6addr + sizeof(__u8) * (offset + index + 1) + 1 > data_end)
+                break;
+            if (index < py_size && index + offset + 1 < sizeof(struct in6_addr))
+            {
+                v6addr->in6_u.u6_addr8[offset + index] |= pyload[index] >> shift;
+                v6addr->in6_u.u6_addr8[offset + index + 1] |= pyload[index] << (8 - shift);
+            }
+        }
+    }
+}
+
+// struct sockaddr_in6 netmask;
+// for (long i = prefixLength, j = 0; i > 0; i -= 8, ++j)
+//   netmask.sin6_addr.s6_addr[ j ] = i >= 8 ? 0xff
+//                                     : (ULONG)(( 0xffU << ( 8 - i ) ) & 0xffU );
+
 /* from include/net/ip.h */
 __attribute__((__always_inline__)) static inline int ip_decrease_ttl(struct iphdr *iph)
 {

@@ -5,7 +5,7 @@
 * T.M.GTP4.E
 
 ## Topology
-![](.images/GTPv1TransTop.png)
+![](./images/GTPv1TransTop.png)
 
 ## Run
 ```bash

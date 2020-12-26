@@ -8,9 +8,12 @@
 struct transit_behavior
 {
     struct in6_addr saddr;
-    struct in6_addr segments[MAX_SEGMENTS];
+    struct in6_addr daddr;
+    __u32 s_prefixlen;
+    __u32 d_prefixlen;
     __u32 segment_length;
     __u32 action;
+    struct in6_addr segments[MAX_SEGMENTS];
 };
 
 struct lpm_key_v4
@@ -40,6 +43,8 @@ struct end_function
     // The reason why the "__u32 function" is not "__u8" is that it also serves as padding.
     // The cilium/ebpf package assumes that the go structure takes 4 bytes each and does not pack.
     __u32 function;
+    __u32 flaver;
+    __u32 v4_addrpos;
 };
 
 // Segment Routing Extension Header (SRH)
@@ -65,6 +70,34 @@ struct srv6_tlv
     __u8 data[0];
 };
 
+struct gtpu_exthdr
+{
+    __u16 seq;
+    __u8 npdu_num;
+    __u8 nextexthdr;
+} gtpu_exthdr;
+
+struct gtpu_pdu_session_t
+{
+    __u8 exthdrlen;
+    __u8 type : 4;
+    __u8 spare : 4;
+    union
+    {
+        struct gtpu_qfi_bits
+        {
+            __u8 p : 1;
+            __u8 r : 1;
+            __u8 qfi : 6;
+        } bits;
+
+        __u8 val;
+    } u;
+
+    struct gtpu_exthdr paging[0];
+    __u8 nextexthdr;
+};
+
 /* According to 3GPP TS 29.060. */
 struct gtp1hdr
 {
@@ -80,18 +113,28 @@ struct gtp1hdr
     __u32 tid;
 
     // options
-    __u16 seq;       // Sequence Number
-    __u8 npdu;       // N-PDU number
-    __u8 nextExtHdr; // Next Extention Header Type
+    // __u16 seq;       // Sequence Number
+    // __u8 npdu;       // N-PDU number
+    // __u8 nextExtHdr; // Next Extention Header Type
 };
 
-// https://tools.ietf.org/html/draft-ietf-dmm-srv6-mobile-uplane-05#section-6.1
+// https://tools.ietf.org/html/draft-ietf-dmm-srv6-mobile-uplane-09#section-6.1
+// https://tools.ietf.org/html/draft-murakami-dmm-user-plane-message-encoding-02#section-5.2
 struct args_mob_session
 {
     __u8 qfi : 6;
     __u8 r : 1;
     __u8 u : 1;
-    __u32 pdu_session_id;
-};
+    // __u8 qfi_r_u;
+    union
+    {
+        __u32 pdu_session_id;
+        struct seq
+        {
+            __u16 seq;
+            __u16 padding;
+        } seq;
+    } session;
+} __attribute__((packed));
 
 #endif

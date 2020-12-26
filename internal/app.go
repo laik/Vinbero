@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/cilium/ebpf"
@@ -126,11 +127,12 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 	fnm := srv6.MappingFunctionTable(m)
 
 	for _, fn := range c {
-		actId := srv6.Seg6LocalActionInt(fn.Action)
-		if srv6.SEG6_LOCAL_ACTION_MAX == actId {
-			return nil, errors.New(fmt.Sprintf("%v not found", fn.Action))
+		actId, err := srv6.Seg6LocalActionInt(fn.Action)
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		_, cidr, err := net.ParseCIDR(fn.Addr)
+
+		_, cidr, err := net.ParseCIDR(fn.TriggerAddr)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -142,20 +144,34 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 		if sip != nil {
 			copy(startSip[:], sip.To16())
 		}
+		nip := net.ParseIP(fn.Nexthop)
 		switch actId {
 		case srv6.SEG6_LOCAL_ACTION_END_DX4:
-			nip := net.ParseIP(fn.Nexthop)
 			copy(nhpip[:], nip.To4())
 		case srv6.SEG6_LOCAL_ACTION_END_DX6:
-			nip := net.ParseIP(fn.Nexthop)
 			copy(nhpip[:], nip.To16())
+		}
+
+		flaverid, err := srv6.Seg6LocalFlaverInt(fn.Flaver)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		var v4pos uint32
+		if actId == srv6.SEG6_LOCAL_ACTION_END_M_GTP4_E {
+			pos, err := strconv.Atoi(fn.V4AddrPos)
+			v4pos = uint32(pos)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
 		}
 
 		err = fnm.Update(
 			srv6.FunctionTable{
-				Function:   uint32(actId),
+				Function:   actId,
 				StartSaddr: startSip,
 				Nexthop:    nhpip,
+				Flaver:     flaverid,
+				V4AddrPos:  v4pos,
 			},
 			convip,
 			uint32(prefixlen),
@@ -175,11 +191,12 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 	tranv4 := srv6.MappingTransitTablev4(m)
 
 	for _, t4 := range c {
-		actId := srv6.Seg6EncapModeInt(t4.Action)
-		if srv6.SEG6_IPTUN_MODE_MAX == actId {
-			return nil, errors.New(fmt.Sprintf("%v not found", t4.Action))
+		actId, err := srv6.Seg6EncapModeInt(t4.Action)
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		_, cidr, err := net.ParseCIDR(t4.Addr)
+
+		_, cidr, err := net.ParseCIDR(t4.TriggerAddr)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -187,10 +204,32 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 
 		sip := net.ParseIP(t4.SAddr)
 		var convip [4]byte
-		var startSip [16]byte
 		copy(convip[:], cidr.IP.To4())
-		if sip != nil {
-			copy(startSip[:], sip.To16())
+
+		var (
+			actSip, actDip   [16]byte
+			sPrefix, dPrefix uint32
+		)
+		if actId == srv6.SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D {
+			_, srcCidr, err := net.ParseCIDR(t4.SAddr)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			copy(actSip[:], srcCidr.IP.To16())
+			srcPrefixlen, _ := srcCidr.Mask.Size()
+			sPrefix = uint32(srcPrefixlen)
+
+			_, dstCidr, err := net.ParseCIDR(t4.DAddr)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			copy(actDip[:], dstCidr.IP.To16())
+			dstPrefixlen, _ := dstCidr.Mask.Size()
+			dPrefix = uint32(dstPrefixlen)
+		} else {
+			if sip != nil {
+				copy(actSip[:], sip.To16())
+			}
 		}
 
 		var newsegments [srv6.MAX_SEGMENTS][16]byte
@@ -198,23 +237,18 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 			var segmentaddr [16]byte
 			copy(segmentaddr[:], net.ParseIP(seg).To16())
 			log.Println("segments addr", i, segmentaddr)
-
 			newsegments[i] = segmentaddr
-			fmt.Println("seg: ", newsegments[i])
-		}
-
-		segLen := len(t4.Segments)
-		if srv6.MAX_SEGMENTS < segLen {
-			return nil, errors.New(fmt.Sprintf("Max Segments Entry over. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
-		} else if segLen == 0 {
-			return nil, errors.New(fmt.Sprintf("Length Entry empty. %v/%v", len(newsegments), srv6.MAX_SEGMENTS))
+			log.Println("seg: ", newsegments[i])
 		}
 
 		err = tranv4.Update(
 			srv6.TransitTablev4{
+				Saddr:         actSip,
+				Daddr:         actDip,
+				SPrefixlen:    sPrefix,
+				DPrefixlen:    dPrefix,
+				SegmentLength: uint32(len(t4.Segments)),
 				Action:        uint32(actId),
-				SegmentLength: uint32(segLen),
-				Saddr:         startSip,
 				Segments:      newsegments,
 			},
 			convip,

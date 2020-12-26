@@ -39,10 +39,11 @@ sudo sysctl net.ipv6.conf.eth2.seg6_enabled=1
 # settings:
 #   functions:
 #     - action: SEG6_LOCAL_ACTION_END
-#       addr: fc00:2::1/128
-#       actionSourceAddr: fc00:1::1
+#       triggerAddr: fc00:2::1/128
+#       actionSrcAddr: fc00:1::1
 #     - action: SEG6_LOCAL_ACTION_END
-#       addr: fc00:2::2/128
+#       triggerAddr: fc00:2::2/128
+#       actionSrcAddr: fc00:1::1
 
 ethtool -L eth0 combined 2
 ethtool -L eth1 combined 2
