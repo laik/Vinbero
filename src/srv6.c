@@ -125,7 +125,6 @@ __attribute__((__always_inline__)) static inline int base_encap(struct xdp_md *x
 
     if ((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end)
     {
-        bpf_printk("base_encap3\n");
         return XDP_PASS;
     }
 
@@ -134,7 +133,6 @@ __attribute__((__always_inline__)) static inline int base_encap(struct xdp_md *x
     v6h = (void *)data + sizeof(struct ethhdr);
     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end)
     {
-        bpf_printk("base_encap4\n");
         return XDP_PASS;
     }
     v6h->version = 6;
@@ -145,7 +143,6 @@ __attribute__((__always_inline__)) static inline int base_encap(struct xdp_md *x
     __builtin_memcpy(&v6h->saddr, &tb->saddr, sizeof(struct in6_addr));
     if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS)
     {
-        bpf_printk("base_encap5\n");
         return XDP_PASS;
     }
 
@@ -154,7 +151,6 @@ __attribute__((__always_inline__)) static inline int base_encap(struct xdp_md *x
     srh = (void *)v6h + sizeof(struct ipv6hdr);
     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr)) > data_end)
     {
-        bpf_printk("base_encap6\n");
         return XDP_PASS;
     }
 
@@ -174,7 +170,6 @@ __attribute__((__always_inline__)) static inline int base_encap(struct xdp_md *x
 
         if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr) + sizeof(struct in6_addr) * (i + 1) + 1) > data_end)
         {
-            bpf_printk("base_encap7\n");
             return XDP_PASS;
         }
         // srh->segments[i] = tb->segments[i];

@@ -8,8 +8,8 @@ internal:
 settings:
   functions:
     - action: SEG6_LOCAL_ACTION_END_DX4
-      addr: fc00:1::1/128
-      nexthop: 172.0.1.1
+      addr: fc00:3::3/128
+      nexthop: 172.0.2.1
       # actionSourceAddr: 172.0.1.2
   # functions:
   #   - action: SEG6_LOCAL_ACTION_END
@@ -25,11 +25,11 @@ settings:
     #     - fc00:2::1
     #     - fc00:3::3
     - action: SEG6_IPTUN_MODE_ENCAP
-      addr: 172.0.2.0/24
-      actionSourceAddr: fc00:1::1
+      addr: 172.0.1.0/24
+      actionSourceAddr: fc00:3::3
       segments:
+        - fc00:1::1 # last arrive next hop
         - fc00:2::1
-        - fc00:3::3
   # transitv6:
   #   - action: SEG6_IPTUN_MODE_ENCAP
   #     addr: fd00:1::1/64

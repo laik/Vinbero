@@ -43,6 +43,8 @@ See https://github.com/cloudflare/xdpcap
 
 ```
 sudo apt-get install libpcap-dev
+go get -u github.com/cloudflare/xdpcap/cmd/xdpcap
+
 # run on each nodes
 sudo mount bpffs /sys/fs/bpf -t bpf
 
