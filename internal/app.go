@@ -240,7 +240,7 @@ func setTransitv4(c []config.Transitv4Config, m *ebpf.Map) (*srv6.TransitTablev4
 			newsegments[i] = segmentaddr
 			log.Println("seg: ", newsegments[i])
 		}
-
+		fmt.Println("segment len is ", len(t4.Segments))
 		err = tranv4.Update(
 			srv6.TransitTablev4{
 				Saddr:         actSip,

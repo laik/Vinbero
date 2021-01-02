@@ -17,26 +17,39 @@
 #include "srv6_consts.h"
 
 __attribute__((__always_inline__)) static inline void write_v6addr_in_pyload(
-    struct in6_addr *v6addr, __u8 *pyload, const __u16 py_size, const __u16 offset, const __u16 shift, __u32 *data_end)
+    struct in6_addr *v6addr, __u8 *pyload, __u16 py_size, __u16 offset, __u16 shift, const __u32 *data_end)
 {
-    if (sizeof(struct in6_addr) <= offset || sizeof(struct in6_addr) <= py_size + offset || offset < 0 || (void *)(long)v6addr + offset + py_size + 1 > data_end)
+    // offset = offset & 0xffff;
+    // py_size = py_size & 0xffff;
+    if (sizeof(struct in6_addr) <= offset ||
+        sizeof(struct in6_addr) <= py_size + offset ||
+        offset < 0)
         return;
+
     if (shift == 0)
     {
-        __builtin_memcpy(&v6addr->s6_addr[offset], pyload, py_size);
+        if ((void *)v6addr + offset + py_size > data_end)
+            return;
+
+        __builtin_memcpy(&v6addr->in6_u.u6_addr8[offset], pyload, py_size);
     }
     else
     {
 #pragma clang loop unroll(disable)
-        for (int index = 0; index < sizeof(struct in6_addr); index++)
+        for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
         {
-            if ((void *)(long)v6addr + sizeof(__u8) * (offset + index + 1) + 1 > data_end)
+            offset = offset & 0xffff;
+            index = index & 0xffff;
+            if (py_size <= index)
                 break;
-            if (index < py_size && index + offset + 1 < sizeof(struct in6_addr))
-            {
-                v6addr->in6_u.u6_addr8[offset + index] |= pyload[index] >> shift;
-                v6addr->in6_u.u6_addr8[offset + index + 1] |= pyload[index] << (8 - shift);
-            }
+
+            if ((void *)v6addr + offset + index + 1 + 1 > data_end)
+                return;
+
+            v6addr->in6_u.u6_addr8[offset + index] |= pyload[index] >> shift;
+            offset = offset & 0xffff;
+            index = index & 0xffff;
+            v6addr->in6_u.u6_addr8[offset + index + 1] |= pyload[index] << (8 - shift);
         }
     }
 }

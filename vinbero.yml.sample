@@ -38,8 +38,8 @@ settings:
         - fc00:2::1 # fast arrive next hop
     - action: SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D
       triggerAddr: 172.0.1.0/24
-      actionSrcAddr: fc00:1::/64
-      actionDstAddr: fc00:3::/64　# last arrive next hop
+      actionSrcAddr: fc00:1::/64 # subnet range 0=>94
+      actionDstAddr: fc00:3::/48　# last arrive next hop, subnet range 0=>56
       segments: # max size 4
         - fc00:1::1
         - <many...>

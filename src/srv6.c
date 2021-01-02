@@ -204,19 +204,29 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
     bpf_printk("run __builtin_memcpy(&outer_saddr, &iph->saddr, sizeof(__u32));\n");
 
     // TODO:: extention header support
-    decap_len = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr);
+    decap_len = sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr);
 
     tid = gtp1h->tid;
     type = gtp1h->type;
     innerlen = bpf_ntohs(gtp1h->length);
     // GTPV1_GPDU only logic
     if (type != GTPV1_GPDU)
+    {
+        bpf_printk("type != GTPV1_GPDU\n");
         return XDP_DROP;
+    }
 
     if (tb->s_prefixlen == 0 || tb->d_prefixlen == 0 ||
         MAX_GTP4_SRCADDR_PREFIX < tb->s_prefixlen ||
         MAX_GTP4_DSTADDR_PREFIX < tb->d_prefixlen)
+    {
+        bpf_printk("tb->s_prefixlen: %d\n", tb->s_prefixlen);
+        bpf_printk("tb->d_prefixlen: %d\n", tb->d_prefixlen);
+
+        bpf_printk("MAX_GTP4_DSTADDR_PREFIX < tb->d_prefixlen\n");
+
         return XDP_DROP;
+    }
 
     // if (type == ECHO_REQUEST || type == ECHO_RESPONSE){
     //     seqNum = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct gtp1hdr);
@@ -225,12 +235,18 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
     //         return XDP_PASS;
     //     }
     // }
+    __u32 seg_len = tb->segment_length + 1;
+    srh_len = sizeof(struct srhhdr) + (sizeof(struct in6_addr) * seg_len); // Add the size of the converted address
+    bpf_printk("seg_len %d\n", seg_len);
+    bpf_printk("srh_len %d\n", srh_len);
 
-    srh_len = sizeof(struct srhhdr) + sizeof(struct in6_addr) * (tb->segment_length + 1);
     encap_len = sizeof(struct ipv6hdr) + srh_len;
-
+    seg_len = seg_len & 0xffff;
     // Shrink
-    if (bpf_xdp_adjust_head(xdp, 0 - decap_len + encap_len))
+    if (bpf_xdp_adjust_head(xdp, (int)(decap_len)))
+        return XDP_PASS;
+
+    if (bpf_xdp_adjust_head(xdp, 0 - (int)(encap_len)))
         return XDP_PASS;
 
     bpf_printk("run bpf_xdp_adjust_head ed\n");
@@ -240,13 +256,13 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
 
     struct ethhdr *new_eth = (void *)data;
     if ((void *)((long)new_eth + sizeof(struct ethhdr)) > data_end)
-        return XDP_PASS;
+        return XDP_DROP;
 
     new_eth->h_proto = bpf_htons(ETH_P_IPV6);
 
     v6h = (void *)data + sizeof(struct ethhdr);
     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > data_end)
-        return XDP_PASS;
+        return XDP_DROP;
 
     v6h->version = 6;
     v6h->priority = 0;
@@ -254,9 +270,10 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
     v6h->hop_limit = 64;
     v6h->payload_len = bpf_htons(srh_len + innerlen);
     __builtin_memcpy(&v6h->saddr, &tb->saddr, sizeof(struct in6_addr));
-    if (tb->segment_length == 0 || tb->segment_length > MAX_SEGMENTS)
-        return XDP_PASS;
-    __builtin_memcpy(&v6h->daddr, &tb->segments[tb->segment_length - 1], sizeof(struct in6_addr));
+    if (seg_len < 1 || MAX_SEGMENTS < seg_len)
+        return XDP_DROP;
+
+    __builtin_memcpy(&v6h->daddr, &tb->segments[seg_len - 1], sizeof(struct in6_addr));
 
     struct args_mob_session args;
     __u16 s_offset, s_shift, d_offset, d_shift;
@@ -286,37 +303,48 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
     if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr)) > data_end)
         return XDP_PASS;
 
+    bpf_printk("XDP_PASS1\n");
     srh->nextHdr = IPPROTO_IPIP;
     srh->hdrExtLen = ((srh_len / 8) - 1);
     srh->routingType = 4;
-    srh->segmentsLeft = tb->segment_length - 1;
-    srh->lastEntry = tb->segment_length - 1;
+    srh->segmentsLeft = seg_len - 1;
+    srh->lastEntry = seg_len - 1;
     srh->flags = 0;
     srh->tag = 0;
-    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr) + sizeof(struct in6_addr) * 2 + 1) > data_end)
+    if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr) + sizeof(struct in6_addr) + 1) > data_end)
         return XDP_PASS;
 
-    __builtin_memcpy(&srh->segments[0], &tb->daddr, sizeof(struct in6_addr));
+    // bpf_printk("XDP_PASS2\n");
+    __builtin_memcpy(&v6h->daddr, &tb->segments[0], sizeof(struct in6_addr));
+
     write_v6addr_in_pyload(&srh->segments[0], dst_p, sizeof(__u32), d_offset, d_shift, data_end);
     d_offset += sizeof(__u32);
-    write_v6addr_in_pyload(&v6h->daddr, args_p, sizeof(struct args_mob_session), d_offset, d_shift, data_end);
+    write_v6addr_in_pyload(&srh->segments[0], args_p, sizeof(struct args_mob_session), d_offset, d_shift, data_end);
 
-#pragma clang loop unroll(full)
-    for (__u32 i = 1; i < MAX_SEGMENTS; i++)
+#pragma clang loop unroll(disable)
+    for (__u16 i = 1; i < MAX_SEGMENTS; i++)
     {
-        if (i >= tb->segment_length)
+        i = i & 0xffff;
+        if (i >= seg_len)
             break;
 
         if ((void *)(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct srhhdr) + sizeof(struct in6_addr) * (i + 2) + 1) > data_end)
+        {
+            bpf_printk("check segment size %d\n", i);
             return XDP_PASS;
+        }
 
         __builtin_memcpy(&srh->segments[i], &tb->segments[i - 1], sizeof(struct in6_addr));
+        bpf_printk("go loop count %d\n", i);
     }
+
+    // bpf_printk("go rewrite_nexthop");
 
     return rewrite_nexthop(xdp, BPF_FIB_LOOKUP_OUTPUT);
 }
 
-__attribute__((__always_inline__)) static inline int action_end_m_gtp4_e(struct xdp_md *xdp, struct end_function *ef)
+__attribute__((__always_inline__)) static inline int
+action_end_m_gtp4_e(struct xdp_md *xdp, struct end_function *ef)
 {
     return 0;
 }
