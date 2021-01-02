@@ -9,11 +9,10 @@ sudo ip link set eth2 up
 sudo ip addr add fc00:23::2/64 dev eth2
 
 # to route1
-sudo ip -6 route add fc00:1::/64 via fc00:12::1
-sudo ip -6 route add fc00:12::/64 via fc00:12::1
-
-sudo ip -6 route add fc00:3::/64 via fc00:23::1
-sudo ip -6 route add fc00:23::/64 via fc00:23::1
+sudo ip -6 route add fc00:1::/48 via fc00:12::1
+sudo ip -6 route add fc00:12::/48 via fc00:12::1
+sudo ip -6 route add fc00:3::/48 via fc00:23::1
+sudo ip -6 route add fc00:23::/48 via fc00:23::1
 
 # seg6
 sudo sysctl net.ipv4.conf.all.forwarding=1

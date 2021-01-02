@@ -316,7 +316,7 @@ __attribute__((__always_inline__)) static inline int transit_gtp4_encap(struct x
 
     // bpf_printk("XDP_PASS2\n");
     __builtin_memcpy(&v6h->daddr, &tb->segments[0], sizeof(struct in6_addr));
-
+    __builtin_memcpy(&srh->segments[0], &tb->daddr, sizeof(struct in6_addr));
     write_v6addr_in_pyload(&srh->segments[0], dst_p, sizeof(__u32), d_offset, d_shift, data_end);
     d_offset += sizeof(__u32);
     write_v6addr_in_pyload(&srh->segments[0], args_p, sizeof(struct args_mob_session), d_offset, d_shift, data_end);
