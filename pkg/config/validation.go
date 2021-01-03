@@ -98,10 +98,14 @@ func (c *FunctionsConfig) Validate() error {
 	checkV4AddrPos := []int{
 		srv6.SEG6_LOCAL_ACTION_END_M_GTP4_E,
 	}
-	if utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrPos == "" {
-		return fmt.Errorf("v4AddrPos not found")
-	} else if !utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrPos != "" {
-		return fmt.Errorf("Do not throw in invalid configurations.Is v4AddrPos")
+	if utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrSPos == "" {
+		return fmt.Errorf("v4AddrSPos not found")
+	} else if !utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrSPos != "" {
+		return fmt.Errorf("Do not throw in invalid configurations.Is v4AddrSPos")
+	} else if utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrDPos == "" {
+		return fmt.Errorf("V4AddrDPos not found")
+	} else if !utils.IntArrayContains(checkV4AddrPos, int(actId)) && c.V4AddrDPos != "" {
+		return fmt.Errorf("Do not throw in invalid configurations.Is V4AddrDPos")
 	}
 
 	return nil

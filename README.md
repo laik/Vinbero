@@ -1,6 +1,8 @@
 # Vinbero
 Implementation of SRv6 subset written in XDP
 
+// TODO: I want a nice logo....
+
 The goal of this project is to implement the basic functions of SRv6 so that users can enjoy network programming:)
 For example, L2,L3VPN, ServiceChain, Mobile Uplane(in UPF)...etc,
 
@@ -27,7 +29,7 @@ echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/user.conf
 remove offload
 ```
 for i in rx tx tso ufo gso gro lro tx nocache copy sg txvlan rxvlan; do
-       /sbin/ethtool -K eth2 $i off 2>&1 > /dev/null;
+       /sbin/ethtool -K eth1 $i off 2>&1 > /dev/null;
 done
 ```
 
@@ -116,10 +118,10 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 | End.T | | |
 | End.DX2 (V) | | |
 | End.DT2 (U/M) | | |
-| End.DX6 | | |
-| End.DX4 |  | |
-| End.DT6 | Done | |
-| End.DT4 | Done | |
+| End.DX6 | Done | |
+| End.DX4 | Done | |
+| End.DT6 | | |
+| End.DT4 | | |
 | End.DT46 | | |
 | End.B6.Insert | | |
 | End.B6.Insert.Red | | |
@@ -132,8 +134,8 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 | End.M.GTP6.D | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit　|
 | End.M.GTP6.D.Di | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit |
 | End.M.GTP6.E | Jan, 2021 | SRv6 => GTP-U/IPv6 |
-| End.M.GTP4.E | Jan, 2021 | SRv6 => GTP-U/IPv4 |
-| H.M.GTP4.D | Jan, 2021 | GTP-U/IPv4 => SRv6, For implementation purposes, it is treated as transit|
+| End.M.GTP4.E | partial Done | SRv6 => GTP-U/IPv4 |
+| H.M.GTP4.D | partial Done | GTP-U/IPv4 => SRv6, Currently, gtpv1ext hdr is not supported. Also, only subnets in multiples of 8 are supported. We're aiming for full implementation in the future.|
 | End.Limit | | Rate Limiting function |
 
 ### Non functional design items

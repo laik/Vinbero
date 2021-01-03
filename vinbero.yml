@@ -6,21 +6,24 @@ internal:
     - eth1
     - eth2
 settings:
-  # functions:
-  #   # - action: SEG6_LOCAL_ACTION_END_DX4
-  #   #   addr: fc00:3::3/128
-  #   #   nexthop: 172.0.2.1
-  #     # actionSrcAddr: 172.0.1.2
-  #   - action: SEG6_LOCAL_ACTION_END_M_GTP4_E
-  #     triggerAddr: 172.0.1.0/24
-  #     v4AddrPos: 64
+  functions:
+    # - action: SEG6_LOCAL_ACTION_END_DX4
+    #   addr: fc00:3::3/128
+    #   nexthop: 172.0.2.1
+      # actionSrcAddr: 172.0.1.2
+    - action: SEG6_LOCAL_ACTION_END_M_GTP4_E
+      triggerAddr: fc00:3::/48
+      actionSrcAddr: 172.0.2.2
+      v4AddrSPos: 64
+      v4AddrDPos: 48
   transitv4:
     - action: SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D
       triggerAddr: 172.0.1.0/24
       actionSrcAddr: fc00:3::/64
       actionDstAddr: fc00:1::/48 # last arrive next hop
       segments:
-        - fc00:2::1
+        - fc00:2::2
+
   # transitv6:
   #   - action: SEG6_IPTUN_MODE_ENCAP
   #     addr: fd00:1::1/64

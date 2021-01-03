@@ -75,7 +75,8 @@ type FunctionsConfig struct {
 	DAddr       string `yaml:"actionDstAddr,omitempty"`
 	Nexthop     string `yaml:"nexthop,omitempty"`
 	Flaver      string `yaml:"flaver,omitempty"`
-	V4AddrPos   string `yaml:"v4AddrPos,omitempty"`
+	V4AddrSPos  string `yaml:"v4AddrSPos,omitempty"`
+	V4AddrDPos  string `yaml:"v4AddrDPos,omitempty"`
 }
 
 type Transitv4Config struct {

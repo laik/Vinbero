@@ -185,7 +185,6 @@ dmypy.json
 ## dev env not include file
 .envrc
 .vscode/settings.json
-dump.log
 obj/srv6.o
 build
 bin
@@ -199,3 +198,6 @@ hook.h
 main
 srv6_bpf.*
 linux-*
+*.pcap
+objdump
+*.log

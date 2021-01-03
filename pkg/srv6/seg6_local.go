@@ -163,5 +163,5 @@ func Seg6LocalActionInt(name string) (uint32, error) {
 	case "SEG6_LOCAL_ACTION_END_M_GTP4_E":
 		return SEG6_LOCAL_ACTION_END_M_GTP4_E, nil
 	}
-	return 0, fmt.Errorf("%d action not match", name)
+	return 0, fmt.Errorf("%s action not match", name)
 }
