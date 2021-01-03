@@ -20,6 +20,8 @@ type FunctionTable struct {
 	StartSaddr [16]uint8
 	Nexthop    [16]uint8
 	Function   uint32
+	Flaver     uint32
+	V4AddrPos  uint32
 }
 
 type FunctionTablesMap struct {

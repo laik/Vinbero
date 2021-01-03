@@ -2,12 +2,12 @@
 package srv6
 
 import (
+	"fmt"
 	"net"
 )
 
 const (
-	SEG6_GTPV1_LOC_FUNCTION_MAXSIZE_ = 56 // == 128 - v4addr(32) - args(40)
-	SEG6_GTPV1_LOC_FUNCTION_MAXSIZE
+	SEG6_GTPV1_LOC_FUNCTION_MAXSIZE = 56 // == 128 - v4addr(32) - args(40)
 )
 
 type IPv6SrHdr struct {
@@ -29,7 +29,6 @@ const (
 	SEG6_IPTUN_MODE_L2ENCAP
 	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
 	SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di
-	SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
 	SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D
 	__SEG6_IPTUN_MODE_MAX
 )
@@ -38,41 +37,37 @@ const (
 	SEG6_IPTUN_MODE_MAX = __SEG6_IPTUN_MODE_MAX
 )
 
-const SEG6_IPTUN_MODE_UNKNOWN = "unknown"
-
 // Helper functions
-func Seg6EncapModeString(mode int) string {
+func Seg6EncapModeString(mode int) (string, error) {
 	switch mode {
 	case SEG6_IPTUN_MODE_INLINE:
-		return "T.Insert"
+		return "T.Insert", nil
 	case SEG6_IPTUN_MODE_ENCAP:
-		return "T.Encaps"
+		return "T.Encaps", nil
 	case SEG6_IPTUN_MODE_L2ENCAP:
-		return "T.Encaps.L2"
+		return "T.Encaps.L2", nil
 	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D:
-		return "T.M.GTP6.D"
+		return "T.M.GTP6.D", nil
 	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di:
-		return "T.M.GTP6.D.Di"
-	case SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D:
-		return "T.M.GTP4.D"
+		return "T.M.GTP6.D.Di", nil
 	case SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D:
-		return "H.M.GTP4.D"
+		return "H.M.GTP4.D", nil
 	}
-	return SEG6_IPTUN_MODE_UNKNOWN
+	return "", fmt.Errorf("%d mode number not match", mode)
 }
 
-func Seg6EncapModeInt(name string) uint8 {
+func Seg6EncapModeInt(name string) (uint32, error) {
 	switch name {
 	case "SEG6_IPTUN_MODE_INLINE":
-		return SEG6_IPTUN_MODE_INLINE
+		return SEG6_IPTUN_MODE_INLINE, nil
 	case "SEG6_IPTUN_MODE_ENCAP":
-		return SEG6_IPTUN_MODE_ENCAP
+		return SEG6_IPTUN_MODE_ENCAP, nil
 	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D":
-		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D
+		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D, nil
 	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di":
-		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di
-	case "SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D":
-		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP4_D
+		return SEG6_IPTUN_MODE_ENCAP_T_M_GTP6_D_Di, nil
+	case "SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D":
+		return SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D, nil
 	}
-	return SEG6_IPTUN_MODE_MAX
+	return 0, fmt.Errorf("%d action not match", name)
 }

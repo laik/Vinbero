@@ -69,24 +69,29 @@ type SettingConfig struct {
 }
 
 type FunctionsConfig struct {
-	Action  string `yaml:"action,omitempty"`
-	Addr    string `yaml:"addr,omitempty"`
-	SAddr   string `yaml:"actionSourceAddr,omitempty"`
-	Nexthop string `yaml:"nexthop,omitempty"`
+	Action      string `yaml:"action,omitempty"`
+	TriggerAddr string `yaml:"triggerAddr,omitempty"`
+	SAddr       string `yaml:"actionSrcAddr,omitempty"`
+	DAddr       string `yaml:"actionDstAddr,omitempty"`
+	Nexthop     string `yaml:"nexthop,omitempty"`
+	Flaver      string `yaml:"flaver,omitempty"`
+	V4AddrPos   string `yaml:"v4AddrPos,omitempty"`
 }
 
 type Transitv4Config struct {
-	Action   string   `yaml:"action,omitempty"`
-	Addr     string   `yaml:"addr,omitempty"`
-	SAddr    string   `yaml:"actionSourceAddr,omitempty"`
-	Segments []string `yaml:"segments,omitempty"`
+	Action      string   `yaml:"action,omitempty"`
+	TriggerAddr string   `yaml:"triggerAddr,omitempty"`
+	SAddr       string   `yaml:"actionSrcAddr,omitempty"`
+	DAddr       string   `yaml:"actionDstAddr,omitempty"`
+	Segments    []string `yaml:"segments,omitempty"`
 }
 
 type Transitv6Config struct {
-	Action   string   `yaml:"action,omitempty"`
-	Addr     string   `yaml:"addr,omitempty"`
-	SAddr    string   `yaml:"action_source_addr,omitempty"`
-	Segments []string `yaml:"segments,omitempty"`
+	Action      string   `yaml:"action,omitempty"`
+	TriggerAddr string   `yaml:"triggerAddr,omitempty"`
+	SAddr       string   `yaml:"actionSrcAddr,omitempty"`
+	DAddr       string   `yaml:"actionDstAddr,omitempty"`
+	Segments    []string `yaml:"segments,omitempty"`
 }
 
 // Preset params.

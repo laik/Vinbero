@@ -20,9 +20,12 @@ type TransitTablev4Key struct {
 
 type TransitTablev4 struct {
 	Saddr         [16]byte
-	Segments      [MAX_SEGMENTS][16]byte
+	Daddr         [16]byte
+	SPrefixlen    uint32
+	DPrefixlen    uint32
 	SegmentLength uint32
 	Action        uint32
+	Segments      [MAX_SEGMENTS][16]byte
 }
 
 type TransitTablev4sMap struct {

@@ -1,12 +1,25 @@
-# vinbero
+# Vinbero
 Implementation of SRv6 subset written in XDP
+
+The goal of this project is to implement the basic functions of SRv6 so that users can enjoy network programming:)
+For example, L2,L3VPN, ServiceChain, Mobile Uplane(in UPF)...etc,
+
+This implementation is also very powerful because it is written in XDP.
+It does not require any special equipment like P4.
+All you need is the latest linux kernel to run it.
+It is also a very small implementation compared to VPP.
+It's easy to understand and easy to add functionality.It is also possible to incorporate these:)
+
+Please raise issue with use case description if you want to any SRv6 functions not implemented yet or let's make a contribution!
+
+## Required package
+TODO
 
 ## Setup
 ```
 ulimit -l unlimited
 
 # if "ulimit -l unlimited" is not working when plz check
-# https://bbs.archlinux.org/viewtopic.php?pid=1828148#p1828148
 echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/system.conf
 echo "DefaultLimitMEMLOCK=infinity">>/etc/systemd/user.conf
 ```
@@ -25,20 +38,43 @@ wget https://raw.githubusercontent.com/cloudflare/xdpcap/master/hook.h
 cd ..
 make
 ```
+## ConfigExample
+This is an example of performing the End operation.
+```yaml
+internal:
+  logfile: "./vinbero.log" # logging is not impliment. sorry:(
+  development: false
+  devices:
+    - eth1
+    - eth2
+settings:
+  functions:
+    - action: SEG6_LOCAL_ACTION_END
+      triggerAddr: fc00:2::1/128
+      actionSrcAddr: fc00:1::1
+    - action: SEG6_LOCAL_ACTION_END
+      triggerAddr: fc00:2::2/128
+      actionSrcAddr: fc00:1::1
+```
+
+In the transit case, actionSrcAddr works as a so-called bsid.
+
+See this for details: [vinbero.yml.sample](./vinbero.yml.sample)
+
 
 ## Run
 ```
 ./bin/vinbero
 ```
 
-## tips
-### debug
+## Tips
+### Print debug
 ```
 sudo trace-cmd record -e 'xdp:*' -O trace_printk
 sudo trace-cmd report > trace.log
 ```
-### xdpcap
-
+### Xdpcap
+Packets output at runtime can be saved in pcap.
 See https://github.com/cloudflare/xdpcap
 
 ```
@@ -65,11 +101,11 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 |----------|----------|-------------|
 | T | n/a | Transit behavior|
 | T.Insert | future | |
-| T.Insert.Red | future | |
-| T.Encaps | Fed, 2020 | |
-| T.Encaps.Red | future | |
+| T.Insert.Red |  | |
+| T.Encaps | Done | |
+| T.Encaps.Red |  | |
 | T.Encaps.L2 | future | |
-| T.Encaps.L2.Red | future | |
+| T.Encaps.L2.Red |  | |
 
 ### Functions associated with a SID
 
@@ -81,9 +117,9 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 | End.DX2 (V) | | |
 | End.DT2 (U/M) | | |
 | End.DX6 | | |
-| End.DX4 | | |
-| End.DT6 | | |
-| End.DT4 | | |
+| End.DX4 |  | |
+| End.DT6 | Done | |
+| End.DT4 | Done | |
 | End.DT46 | | |
 | End.B6.Insert | | |
 | End.B6.Insert.Red | | |
@@ -96,9 +132,8 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 | End.M.GTP6.D | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit　|
 | End.M.GTP6.D.Di | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit |
 | End.M.GTP6.E | Jan, 2021 | SRv6 => GTP-U/IPv6 |
-| End.M.GTP4.D | Jan, 2021 | SRv6 => GTP-U/IPv4 |
-| End.M.GTP4.E | Jan, 2021 | GTP-U/IPv4 => SRv6. For implementation purposes, it is treated as transit |
-| T.M.GTP4.D | Jan, 2021 | GTP-U/IPv4 => SRv6, For implementation purposes, it is treated as transit|
+| End.M.GTP4.E | Jan, 2021 | SRv6 => GTP-U/IPv4 |
+| H.M.GTP4.D | Jan, 2021 | GTP-U/IPv4 => SRv6, For implementation purposes, it is treated as transit|
 | End.Limit | | Rate Limiting function |
 
 ### Non functional design items
@@ -119,3 +154,4 @@ xdpcap /sys/fs/bpf/xdpcap_hook "icmp"
 I'm using these as a reference. thanks:)
 * [p4srv6](https://github.com/ebiken/p4srv6)
 * [linux/samples/bpf](https://github.com/torvalds/linux/tree/master/samples/bpf)
+* [VPP/srv6_mobile_plugin_doc](https://docs.fd.io/vpp/20.05/d7/d3c/srv6_mobile_plugin_doc.html)

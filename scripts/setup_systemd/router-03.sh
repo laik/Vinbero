@@ -38,12 +38,12 @@ sudo sysctl net.ipv6.conf.eth2.seg6_enabled=1
 # settings:
 #   functions:
 #     - action: SEG6_LOCAL_ACTION_END_DX4
-#       addr: fc00:3::3/128
+#       triggerAddr: fc00:3::3/128
 #       nexthop: 172.0.2.1
 #   transitv4:
 #     - action: SEG6_IPTUN_MODE_ENCAP
-#       addr: 172.0.1.0/24
-#       actionSourceAddr: fc00:3::3
+#       triggerAddr: 172.0.1.0/24
+#       actionSrcAddr: fc00:3::3
 #       segments:
 #         - fc00:1::1 # last arrive next hop
 #         - fc00:2::1
