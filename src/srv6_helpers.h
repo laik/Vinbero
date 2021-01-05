@@ -16,50 +16,134 @@
 #include "bpf_endian.h"
 #include "srv6_consts.h"
 
-__attribute__((__always_inline__)) static inline void write_v6addr_in_pyload(
-    struct in6_addr *v6addr, __u8 *pyload, __u16 py_size, __u16 offset, __u16 shift, const __u32 *data_end)
+__attribute__((__always_inline__)) static inline void read_v6addr_in_pyload(
+    __u8 *payload, struct in6_addr *v6addr, __u16 payload_size, __u16 offset, __u16 shift)
 {
-    offset = offset & 0xffff;
-    py_size = py_size & 0xffff;
+    offset = offset & 0xf;
+    payload_size = payload_size & 0xf;
     if (sizeof(struct in6_addr) <= offset ||
-        sizeof(struct in6_addr) <= py_size + offset ||
+        sizeof(struct in6_addr) <= payload_size + offset ||
         offset < 0)
         return;
 
     if (shift == 0)
     {
-        if ((void *)v6addr + offset + py_size > data_end)
-            return;
+#pragma clang loop unroll(disable)
+        for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
+        {
+            index = index & 0xf;
 
-        __builtin_memcpy(&v6addr->in6_u.u6_addr8[offset], pyload, py_size);
+            if (payload_size <= index)
+                break;
+
+            __u8 *payval1 = (__u8 *)(void *)payload + index;
+            __u8 *v6val = (__u8 *)(void *)v6addr + offset + index;
+            if (offset + index + 1 >= sizeof(struct in6_addr))
+                break;
+
+            *payval1 = *v6val;
+        }
     }
-    /* TODO: 8 will also support the division case. help ebpf verify↓*/
+    else
+    {
+#pragma clang loop unroll(disable)
+        for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
+        {
+            index = index & 0xf;
 
-    //     else
-    //     {
-    // #pragma clang loop unroll(disable)
-    //         for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
-    //         {
-    //             // index = index & 0xffff;
+            if (payload_size <= index || payload_size <= index + 1)
+                break;
 
-    //             if (py_size <= index)
-    //                 break;
+            __u8 *payval1 = (__u8 *)(void *)payload + index;
+            __u8 *payval2 = (__u8 *)(void *)payload + index + 1;
+            __u8 *v6val = (__u8 *)(void *)v6addr + offset + index;
+            if (offset + index + 1 >= sizeof(struct in6_addr))
+                break;
 
-    //             if ((void *)v6addr + offset + index + 1 <= data_end)
-    //             {
-    //                 // v6addr->in6_u.u6_addr8[offset + index] |= pyload[index] >> shift;
-    //                 v6addr->in6_u.u6_addr8[offset + index] = pyload[index];
-    //             }
-
-    //             // v6addr->in6_u.u6_addr8[offset + index + 1] |= pyload[index] << (8 - shift);
-    //         }
-    //     }
+            *payval1 |= *v6val >> shift;
+            *payval2 |= *v6val << (8 - shift);
+        }
+    }
 }
 
-// struct sockaddr_in6 netmask;
-// for (long i = prefixLength, j = 0; i > 0; i -= 8, ++j)
-//   netmask.sin6_addr.s6_addr[ j ] = i >= 8 ? 0xff
-//                                     : (ULONG)(( 0xffU << ( 8 - i ) ) & 0xffU );
+__attribute__((__always_inline__)) static inline void read_v6addr_in_pkt_pyload(
+    __u8 *payload, struct in6_addr *v6addr, __u16 payload_size, __u16 offset, __u16 shift, const __u32 *data_end)
+{
+    offset = offset & 0xffff;
+    payload_size = payload_size & 0xffff;
+    if (sizeof(struct in6_addr) <= offset ||
+        sizeof(struct in6_addr) <= payload_size + offset ||
+        offset < 0)
+        return;
+
+    if (shift == 0)
+    {
+        if ((void *)payload + payload_size > data_end)
+            return;
+
+        __builtin_memcpy(payload, &v6addr->in6_u.u6_addr8[offset], payload_size);
+    }
+    else
+    {
+#pragma clang loop unroll(disable)
+        for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
+        {
+            index = index & 0xf;
+
+            if (payload_size <= index)
+                break;
+
+            __u8 *payval1 = (__u8 *)(void *)payload + index;
+            __u8 *payval2 = (__u8 *)(void *)payload + index + 1;
+            __u8 *v6val = (__u8 *)(void *)v6addr + offset + index;
+            if ((void *)payval1 + 1 > data_end || payval2 + 1 > data_end || offset + index + 1 >= sizeof(struct in6_addr))
+                break;
+
+            *payval1 |= *v6val >> shift;
+            *payval2 |= *v6val << (8 - shift);
+        }
+    }
+}
+
+__attribute__((__always_inline__)) static inline void write_v6addr_in_pyload(
+    struct in6_addr *v6addr, __u8 *payload, __u16 payload_size, __u16 offset, __u16 shift, const __u32 *data_end)
+{
+    offset = offset & 0xfff;
+    payload_size = payload_size & 0xffff;
+    if (sizeof(struct in6_addr) <= offset ||
+        sizeof(struct in6_addr) <= payload_size + offset ||
+        offset < 0)
+        return;
+
+    if (shift == 0)
+    {
+        if ((void *)v6addr + offset + payload_size > data_end)
+            return;
+
+        __builtin_memcpy(&v6addr->in6_u.u6_addr8[offset], payload, payload_size);
+    }
+    else
+    {
+#pragma clang loop unroll(disable)
+        for (__u16 index = 0; index < sizeof(struct in6_addr); index++)
+        {
+            index = index & 0xf;
+
+            if (payload_size <= index)
+                break;
+
+            __u8 *v6val1 = (__u8 *)(void *)v6addr + offset + index;
+            __u8 *v6val2 = (__u8 *)(void *)v6addr + offset + index + 1;
+            if (v6val1 + 1 <= data_end && v6val2 + 1 <= data_end)
+            {
+                *v6val1 |= payload[index] >> shift;
+                *v6val2 |= payload[index] << (8 - shift);
+            }
+            else
+                break;
+        }
+    }
+}
 
 /* from include/net/ip.h */
 __attribute__((__always_inline__)) static inline int ip_decrease_ttl(struct iphdr *iph)
@@ -70,8 +154,47 @@ __attribute__((__always_inline__)) static inline int ip_decrease_ttl(struct iphd
     iph->check = (__sum16)(check + (check >= 0xFFFF));
     return --iph->ttl;
 };
+__attribute__((__always_inline__)) static inline __u16 wrapsum(__u32 sum)
+{
+    sum = ~sum & 0xFFFF;
+    return (sum);
+}
 
-__attribute__((__always_inline__)) static inline void csum_update(struct iphdr *iph)
+// cf. https://github.com/iovisor/bcc/issues/2463#issuecomment-718800510
+__attribute__((__always_inline__)) static inline void ipv4_udp_csum_build(struct udphdr *uh, struct iphdr *iph, __u32 *data_end)
+{
+    uh->check = 0;
+    __u32 csum = 0;
+
+    csum = (iph->saddr >> 16) & 0xffff;
+    csum += (iph->saddr) & 0xffff;
+    csum += (iph->daddr >> 16) & 0xffff;
+    csum += (iph->daddr) & 0xffff;
+    csum += (iph->protocol) << 8;
+    csum += uh->len;
+
+    __u16 *buf = (__u16 *)uh;
+    // Compute checksum on udp header + payload
+    for (__u32 i = 0; i < LOOP_MAX_RANGE; i += 2)
+    {
+        if ((void *)(buf + 1) > data_end)
+            break;
+
+        csum += *buf;
+        buf++;
+    }
+    if ((void *)buf + 1 <= data_end)
+        // In case payload is not 2 bytes aligned
+        csum += *(__u8 *)buf;
+
+    csum = ~csum;
+    uh->check = csum;
+    // csum = (csum >> 16) + (csum & 0xffff);
+    // csum += csum >> 16;
+    // uh->check = wrapsum(csum);
+}
+
+__attribute__((__always_inline__)) static inline void csum_build(struct iphdr *iph)
 {
     __u16 *next_iph_u16;
     __u32 csum = 0;
@@ -96,6 +219,46 @@ __attribute__((__always_inline__)) static inline void set_src_dst_mac(void *data
     __builtin_memcpy(p + 3, source, ETH_ALEN);
 }
 
+__attribute__((__always_inline__)) static inline struct ethhdr *get_eth(struct xdp_md *xdp)
+{
+    void *data = (void *)(long)xdp->data;
+    void *data_end = (void *)(long)xdp->data_end;
+
+    struct ethhdr *eth = data;
+    if (eth + 1 > data_end)
+        return NULL;
+
+    return eth;
+}
+__attribute__((__always_inline__)) static inline struct ipv6hdr *get_ipv6(struct xdp_md *xdp)
+{
+    void *data = (void *)(long)xdp->data;
+    void *data_end = (void *)(long)xdp->data_end;
+
+    struct ipv6hdr *v6h = data + sizeof(struct ethhdr);
+
+    if (v6h + 1 > data_end)
+    {
+        return NULL;
+    }
+
+    return v6h;
+};
+
+__attribute__((__always_inline__)) static inline struct iphdr *get_ipv4(struct xdp_md *xdp)
+{
+    void *data = (void *)(long)xdp->data;
+    void *data_end = (void *)(long)xdp->data_end;
+
+    struct iphdr *iph = data + sizeof(struct ethhdr);
+    if (iph + 1 > data_end)
+    {
+        return NULL;
+    }
+
+    return iph;
+};
+
 __attribute__((__always_inline__)) static inline struct srhhdr *get_srh(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
@@ -114,46 +277,30 @@ __attribute__((__always_inline__)) static inline struct srhhdr *get_srh(struct x
     return srh;
 }
 
-__attribute__((__always_inline__)) static inline struct ipv6hdr *get_ipv6(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct udphdr *get_v4_udp(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
 
-    struct ipv6hdr *v6h = data + sizeof(struct ethhdr);
+    struct udphdr *uh = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
 
-    if (data + sizeof(struct ethhdr) > data_end)
-    {
-        bpf_printk("!get_ipv6 fail 1");
+    if ((void *)uh + sizeof(struct udphdr) > data_end)
         return NULL;
-    }
 
-    if (v6h + 1 > data_end)
-    {
-        bpf_printk("!v6h + 1 > data_end fail 1");
-        return NULL;
-    }
-
-    return v6h;
+    return uh;
 };
 
-__attribute__((__always_inline__)) static inline struct iphdr *get_ipv4(struct xdp_md *xdp)
+__attribute__((__always_inline__)) static inline struct gtp1hdr *get_v4_gtp1(struct xdp_md *xdp)
 {
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
 
-    struct iphdr *iph = data + sizeof(struct ethhdr);
+    struct gtp1hdr *gtp1 = data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
 
-    if (data + sizeof(struct ethhdr) > data_end)
-    {
+    if ((void *)gtp1 + sizeof(struct gtp1hdr) > data_end)
         return NULL;
-    }
 
-    if (iph + 1 > data_end)
-    {
-        return NULL;
-    }
-
-    return iph;
+    return gtp1;
 };
 
 __attribute__((__always_inline__)) static inline struct srhhdr *get_and_validate_srh(struct xdp_md *xdp)
@@ -270,30 +417,30 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
         __builtin_memcpy(source, fib_params.smac, ETH_ALEN);
         return true;
     case BPF_FIB_LKUP_RET_BLACKHOLE: /* dest is blackholed; can be dropped */
-        bpf_printk("BPF_FIB_LKUP_RET_BLACKHOLE");
+        // bpf_printk("BPF_FIB_LKUP_RET_BLACKHOLE");
         break;
     case BPF_FIB_LKUP_RET_UNREACHABLE: /* dest is unreachable; can be dropped */
-        bpf_printk("BPF_FIB_LKUP_RET_UNREACHABLE");
+        // bpf_printk("BPF_FIB_LKUP_RET_UNREACHABLE");
         break;
     case BPF_FIB_LKUP_RET_PROHIBIT: /* dest not allowed; can be dropped */
-        bpf_printk("BPF_FIB_LKUP_RET_PROHIBIT");
+        // bpf_printk("BPF_FIB_LKUP_RET_PROHIBIT");
         break;
         // action = XDP_DROP;
         // return false;
     case BPF_FIB_LKUP_RET_NOT_FWDED: /* packet is not forwarded */
-        bpf_printk("BPF_FIB_LKUP_RET_NOT_FWDED");
+        // bpf_printk("BPF_FIB_LKUP_RET_NOT_FWDED");
         break;
     case BPF_FIB_LKUP_RET_FWD_DISABLED: /* fwding is not enabled on ingress */
-        bpf_printk("BPF_FIB_LKUP_RET_FWD_DISABLED");
+        // bpf_printk("BPF_FIB_LKUP_RET_FWD_DISABLED");
         break;
     case BPF_FIB_LKUP_RET_UNSUPP_LWT: /* fwd requires encapsulation */
-        bpf_printk("BPF_FIB_LKUP_RET_UNSUPP_LWT");
+        // bpf_printk("BPF_FIB_LKUP_RET_UNSUPP_LWT");
         break;
     case BPF_FIB_LKUP_RET_NO_NEIGH: /* no neighbor entry for nh */
-        bpf_printk("BPF_FIB_LKUP_RET_NO_NEIGH");
+        // bpf_printk("BPF_FIB_LKUP_RET_NO_NEIGH");
         break;
     case BPF_FIB_LKUP_RET_FRAG_NEEDED: /* fragmentation required to fwd */
-        bpf_printk("BPF_FIB_LKUP_RET_FRAG_NEEDED");
+        // bpf_printk("BPF_FIB_LKUP_RET_FRAG_NEEDED");
         break;
         /* PASS */
         return false;

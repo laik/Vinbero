@@ -5,6 +5,9 @@
 // user define fib ctl value
 #define NextFIBCheck 10000
 
+// max mtusize
+#define LOOP_MAX_RANGE 4000
+
 // linux/socket.h
 #define AF_INET 2   /* Internet IP Protocol 	*/
 #define AF_INET6 10 /* IP version 6			*/
@@ -81,5 +84,18 @@
 #define GTPV1_ERROR 26  // Error Indication
 #define GTPV1_END 254   // End Marker
 #define GTPV1_GPDU 255  // G-PDU
+
+#define GTP_V1 1
+#define GTP1U_PORT 2152
+
+/* from net/ip.h */
+#define IP_DF 0x4000 /* Flag: "Don't Fragment"	*/
+
+// from net/tcp.h
+#define TCPOPT_EOL 0 /* End of options */
+#define TCPOPT_NOP 1 /* Padding */
+#define TCPOPT_MSS 2 /* Segment size negotiating */
+
+#define DEFAULT_TTL 255
 
 #endif

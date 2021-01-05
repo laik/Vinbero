@@ -42,10 +42,21 @@ func App(c *config.Config) error {
 	os.RemoveAll(path)
 	err = xdpcapHook.Pin(path)
 	if err != nil {
+		_ = disposeDevice(&c.InternalConfig)
 		return errors.WithStack(err)
 	}
+	log.Println("xdpcapHook done")
+
+	os.RemoveAll(srv6.V6addrHeepPath)
+	v6heep, err := setV6addrHeep(obj.MapInTapleV6Addr)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	fmt.Printf("%# v\n", pretty.Formatter(v6heep))
+
 	txm, err := setTxportDevice(&c.InternalConfig, obj.MapTxPort)
 	if err != nil {
+		_ = disposeDevice(&c.InternalConfig)
 		return errors.WithStack(err)
 	}
 	fmt.Printf("%# v\n", pretty.Formatter(txm))
@@ -54,6 +65,7 @@ func App(c *config.Config) error {
 	if funcs := c.Setting.Functions; 0 < len(funcs) {
 		srfn, err = setSrv6Function(funcs, obj.MapFunctionTable)
 		if err != nil {
+			_ = disposeDevice(&c.InternalConfig)
 			return errors.WithStack(err)
 		}
 	}
@@ -63,6 +75,7 @@ func App(c *config.Config) error {
 	if t4c := c.Setting.Transitv4; 0 < len(t4c) {
 		tran4, err = setTransitv4(t4c, obj.MapTransitTableV4)
 		if err != nil {
+			_ = disposeDevice(&c.InternalConfig)
 			return errors.WithStack(err)
 		}
 	}
@@ -87,19 +100,39 @@ func App(c *config.Config) error {
 		// fmt.Println()
 		case <-signalChan:
 			// TODO: change prepare priority elf->ebpfmap make -> xdp attach
-			for _, dev := range c.InternalConfig.Devices {
-				// Attach to interface
-				err = xdptool.Detach(dev)
-				if err != nil {
-					return errors.WithStack(err)
-				}
-				log.Println("attached device: ", dev)
+			err := disposeDevice(&c.InternalConfig)
+			if err != nil {
+				return errors.WithStack(err)
 			}
-			log.Println("Detaching program and exit")
-
 			return nil
 		}
 	}
+}
+
+func disposeDevice(c *config.InternalConfig) error {
+	for _, dev := range c.Devices {
+		// Attach to interface
+		err := xdptool.Detach(dev)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		log.Println("attached device: ", dev)
+	}
+	return nil
+}
+
+func setV6addrHeep(m *ebpf.Map) (*srv6.V6addrHeepMap, error) {
+	// txport map
+	v6heep := srv6.MappingV6addrHeep(m)
+
+	// write to redirect map
+	h := []*srv6.V6addrHeep{}
+	err := v6heep.Update(h, 0)
+	if err != nil {
+		log.Printf("Unable to Insert into eBPF map: %v", err)
+		return nil, errors.WithStack(err)
+	}
+	return v6heep, nil
 }
 
 func setTxportDevice(c *config.InternalConfig, m *ebpf.Map) (*srv6.TxPortsMap, error) {
@@ -140,26 +173,38 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 
 		sip := net.ParseIP(fn.SAddr)
 		var convip, startSip, nhpip [16]byte
+		var flaverid uint32
 		copy(convip[:], cidr.IP.To16())
 		if sip != nil {
 			copy(startSip[:], sip.To16())
 		}
+
 		nip := net.ParseIP(fn.Nexthop)
 		switch actId {
 		case srv6.SEG6_LOCAL_ACTION_END_DX4:
 			copy(nhpip[:], nip.To4())
 		case srv6.SEG6_LOCAL_ACTION_END_DX6:
 			copy(nhpip[:], nip.To16())
+
+		case srv6.SEG6_LOCAL_ACTION_END:
+		case srv6.SEG6_LOCAL_ACTION_END_X:
+		case srv6.SEG6_LOCAL_ACTION_END_T:
+			flaverid, err = srv6.Seg6LocalFlaverInt(fn.Flaver)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
 		}
 
-		flaverid, err := srv6.Seg6LocalFlaverInt(fn.Flaver)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		var v4pos uint32
+		var v4Spos, v4Dpos uint32
 		if actId == srv6.SEG6_LOCAL_ACTION_END_M_GTP4_E {
-			pos, err := strconv.Atoi(fn.V4AddrPos)
-			v4pos = uint32(pos)
+			pos, err := strconv.Atoi(fn.V4AddrSPos)
+			v4Spos = uint32(pos)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+
+			pos, err = strconv.Atoi(fn.V4AddrDPos)
+			v4Dpos = uint32(pos)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -171,7 +216,8 @@ func setSrv6Function(c []config.FunctionsConfig, m *ebpf.Map) (*srv6.FunctionTab
 				StartSaddr: startSip,
 				Nexthop:    nhpip,
 				Flaver:     flaverid,
-				V4AddrPos:  v4pos,
+				V4AddrSPos: v4Spos,
+				V4AddrDPos: v4Dpos,
 			},
 			convip,
 			uint32(prefixlen),

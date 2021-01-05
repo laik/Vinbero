@@ -5,6 +5,12 @@
 #include <linux/types.h>
 #include <linux/in6.h> /* For struct in6_addr. */
 
+struct v6addr_heep
+{
+    struct in6_addr saddr;
+    struct in6_addr daddr;
+};
+
 struct transit_behavior
 {
     struct in6_addr saddr;
@@ -44,7 +50,8 @@ struct end_function
     // The cilium/ebpf package assumes that the go structure takes 4 bytes each and does not pack.
     __u32 function;
     __u32 flaver;
-    __u32 v4_addrpos;
+    __u32 v4_addr_spos;
+    __u32 v4_addr_dpos;
 };
 
 // Segment Routing Extension Header (SRH)
@@ -63,51 +70,55 @@ struct srhhdr
     struct in6_addr segments[0];
 };
 
-struct srv6_tlv
+/*
+ * 	struct vlan_hdr - vlan header
+ * 	@h_vlan_TCI: priority and VLAN ID
+ *	@h_vlan_encapsulated_proto: packet type ID or len
+ */
+struct vlan_hdr
 {
-    __u8 type;
-    __u8 len;
-    __u8 data[0];
+    __u16 h_vlan_TCI;
+    __u16 h_vlan_encapsulated_proto;
 };
 
-struct gtpu_exthdr
-{
-    __u16 seq;
-    __u8 npdu_num;
-    __u8 nextexthdr;
-} gtpu_exthdr;
+// struct gtpu_exthdr
+// {
+//     __u16 seq;
+//     __u8 npdu_num;
+//     __u8 nextexthdr;
+// };
 
-struct gtpu_pdu_session_t
-{
-    __u8 exthdrlen;
-    __u8 type : 4;
-    __u8 spare : 4;
-    union
-    {
-        struct gtpu_qfi_bits
-        {
-            __u8 p : 1;
-            __u8 r : 1;
-            __u8 qfi : 6;
-        } bits;
+// struct gtp1_pdu_session_t
+// {
+//     __u8 exthdrlen;
+//     __u8 type : 4;
+//     __u8 spare : 4;
+//     union
+//     {
+//         struct gtpu_qfi_bits
+//         {
+//             __u8 p : 1;
+//             __u8 r : 1;
+//             __u8 qfi : 6;
+//         } bits;
 
-        __u8 val;
-    } u;
+//         __u8 val;
+//     } u;
 
-    struct gtpu_exthdr paging[0];
-    __u8 nextexthdr;
-};
+//     struct gtpu_exthdr paging[0];
+//     __u8 nextexthdr;
+// };
 
 /* According to 3GPP TS 29.060. */
 struct gtp1hdr
 {
-    __u8 version : 3;  // Version field: always 1 for GTPv1
-    __u8 pt : 1;       // Protocol Type (PT): GTP(1), GTP'(0)
-    __u8 reserved : 1; // always zero (0)
-    __u8 e : 1;        // Extension Header flag (E)
-    __u8 s : 1;        // Sequence number flag (S): not present(0), present(1)
-    __u8 pn : 1;       // N-PDU Number flag (PN)
-
+    // __u8 version : 3;  // Version field: always 1 for GTPv1
+    // __u8 pt : 1;       // Protocol Type (PT): GTP(1), GTP'(0)
+    // __u8 reserved : 1; // always zero (0)
+    // __u8 e : 1;        // Extension Header flag (E)
+    // __u8 s : 1;        // Sequence number flag (S): not present(0), present(1)
+    // __u8 pn : 1;       // N-PDU Number flag (PN)
+    __u8 flags;
     __u8 type;
     __u16 length;
     __u32 tid;

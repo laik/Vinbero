@@ -42,6 +42,14 @@ struct
     __uint(map_flags, BPF_F_NO_PREALLOC);
 } transit_table_v6 SEC(".maps");
 
+struct
+{
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __type(key, int);
+    __type(value, struct v6addr_heep);
+    __uint(max_entries, 1);
+} in_taple_v6_addr SEC(".maps");
+
 // https://github.com/cloudflare/xdpcap
 // struct bpf_map_def SEC("maps") xdpcap_hook = XDPCAP_HOOK();
 struct xdpcap_hook
