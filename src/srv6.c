@@ -406,6 +406,7 @@ action_end_m_gtp4_e(struct xdp_md *xdp, struct end_function *ef)
 SEC("xdp_prog")
 int srv6_handler(struct xdp_md *xdp)
 {
+    // bpf_printk("exec thou\n");
     void *data = (void *)(long)xdp->data;
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
@@ -420,12 +421,11 @@ int srv6_handler(struct xdp_md *xdp)
     if (data + sizeof(*eth) > data_end)
         return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
 
-    if (!iph || !v6h)
-        return xdpcap_exit(xdp, &xdpcap_hook, XDP_PASS);
-
     h_proto = eth->h_proto;
     if (h_proto == bpf_htons(ETH_P_IP))
     {
+        if (!iph)
+            return xdpcap_exit(xdp, &xdpcap_hook, XDP_DROP);
         // use encap
         v4key.prefixlen = 32;
         v4key.addr = iph->daddr;
@@ -446,6 +446,9 @@ int srv6_handler(struct xdp_md *xdp)
     }
     else if (h_proto == bpf_htons(ETH_P_IPV6))
     {
+        if (!v6h)
+            return xdpcap_exit(xdp, &xdpcap_hook, XDP_DROP);
+
         v6key.prefixlen = 128;
         v6key.addr = v6h->daddr;
         if (v6h->nexthdr == NEXTHDR_ROUTING)

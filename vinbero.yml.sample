@@ -18,11 +18,9 @@ settings:
     - action: SEG6_LOCAL_ACTION_END_DX4
       triggerAddr: fc00:2::1/128
       nexthop: 172.0.1.1
-      actionSrcAddr: 172.0.1.2
     - action: SEG6_LOCAL_ACTION_END_DT4 # not impli
       triggerAddr: fc00:2::1/128
       nexthop: 172.0.1.0/24
-      actionSrcAddr: 172.0.1.2
     - action: SEG6_LOCAL_ACTION_END_M_GTP4_E
       triggerAddr: fc00:2::1/128
       v4AddrPos: 64

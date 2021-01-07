@@ -3,26 +3,39 @@ internal:
   logfile: "./vinbero.log"
   development: false
   devices:
-    - eth1
-    - eth2
+    - ens4f0
+    - ens4f1
 settings:
-  functions:
+  # functions:
+  #   - action: SEG6_LOCAL_ACTION_END_DX4
+  #     triggerAddr: fc00:2::2/128
+  #     nexthop: 10.2.0.1
+  # functions:
+  #   - action: SEG6_LOCAL_ACTION_END
+  #     triggerAddr: fc00:2::2/128
+  #     # actionSrcAddr: fc00:1::1 #optional
+  #     flaver: NONE
     # - action: SEG6_LOCAL_ACTION_END_DX4
     #   addr: fc00:3::3/128
     #   nexthop: 172.0.2.1
       # actionSrcAddr: 172.0.1.2
-    - action: SEG6_LOCAL_ACTION_END_M_GTP4_E
-      triggerAddr: fc00:3::/48
-      actionSrcAddr: 172.0.2.2
-      v4AddrSPos: 64
-      v4AddrDPos: 48
+    # - action: SEG6_LOCAL_ACTION_END_M_GTP4_E
+    #   triggerAddr: fc00:2::/48
+    #   actionSrcAddr: 10.0.2.2
+    #   v4AddrSPos: 64
+    #   v4AddrDPos: 48
   transitv4:
     - action: SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D
-      triggerAddr: 172.0.1.0/24
-      actionSrcAddr: fc00:3::/64
-      actionDstAddr: fc00:1::/48 # last arrive next hop
+      triggerAddr: 10.2.0.1/24
+      actionSrcAddr: fc00:2::/64
+      actionDstAddr: fc00:3::/48 # last arrive next hop
       segments:
-        - fc00:2::2
+        - fc00:3::3
+    # - action: SEG6_IPTUN_MODE_ENCAP
+    #   triggerAddr: 10.2.0.0/24
+    #   actionSrcAddr: fc00:2::2
+    #   segments: # max size 5
+    #     - fc00:3::3 # last arrive next hop
 
   # transitv6:
   #   - action: SEG6_IPTUN_MODE_ENCAP
