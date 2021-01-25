@@ -3,7 +3,7 @@
 Using Trex to measure communication speed
 ![](../images/measurement_topology.png)
 
-**The result is about 3~5Mpps in single flow, which is 2~3 times better performance than linux!**
+**The result is about 3-5Mpps in single flow, which is 2-3 times better performance than linux!**
 
 ## Install
 in detel to check link
@@ -89,20 +89,20 @@ sudo ip -6 route add fc00:2::2/128 encap seg6local action End.DX4 nh4 10.2.0.2 d
 
 ## Results
 ### Mobile v4
-![](./images/mobile_v4_single_flow.png)
-![](./images/mobile_v4_multi_flow.png)
+![](./graph/images/mobile_v4_singleflow.png)
+![](./graph/images/mobile_v4_multiflow.png)
 
 ### End
-![](./images/end_single_flow.png)
-![](./images/end_multi_flow.png)
+![](./graph/images/end_single_flow.png)
+![](./graph/images/end_multi_flow.png)
 
 ### End.DX4
-![](./images/dx4_singleflow.png)
-![](./images/dx4_multiflow.png)
+![](./graph/images/dx4_single_flow.png)
+![](./graph/images/dx4_multi_flow.png)
 
 ### T.Encap
-![](./images/encap_singleflow.png)
-![](./images/encap_multiflow.png)
+![](./graph/images/encap_single_flow.png)
+![](./graph/images/encap_multi_flow.png)
 
 
 ## Memo
