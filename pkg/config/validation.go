@@ -56,8 +56,6 @@ func (c *FunctionsConfig) Validate() error {
 	}
 
 	checkSaddr := []int{
-		srv6.SEG6_LOCAL_ACTION_END_DX6,
-		srv6.SEG6_LOCAL_ACTION_END_DX4,
 		srv6.SEG6_LOCAL_ACTION_END_M_GTP6_E,
 		srv6.SEG6_LOCAL_ACTION_END_M_GTP4_E,
 	}

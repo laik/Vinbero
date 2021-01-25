@@ -238,9 +238,7 @@ __attribute__((__always_inline__)) static inline struct ipv6hdr *get_ipv6(struct
     struct ipv6hdr *v6h = data + sizeof(struct ethhdr);
 
     if (v6h + 1 > data_end)
-    {
         return NULL;
-    }
 
     return v6h;
 };
@@ -252,9 +250,7 @@ __attribute__((__always_inline__)) static inline struct iphdr *get_ipv4(struct x
 
     struct iphdr *iph = data + sizeof(struct ethhdr);
     if (iph + 1 > data_end)
-    {
         return NULL;
-    }
 
     return iph;
 };
@@ -349,11 +345,9 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
     struct ipv6hdr *v6h = get_ipv6(xdp);
     struct bpf_fib_lookup fib_params = {};
     __u16 h_proto;
+
     //TODO:: impl dot1q proto
     if (data + sizeof(struct ethhdr) > data_end)
-        return false;
-
-    if (!iph || !v6h)
         return false;
 
     h_proto = eth->h_proto;
@@ -362,6 +356,9 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
     switch (h_proto)
     {
     case bpf_htons(ETH_P_IP):
+        if (!iph)
+            return false;
+
         fib_params.family = AF_INET;
         fib_params.tos = iph->tos;
         fib_params.l4_protocol = iph->protocol;
@@ -373,6 +370,9 @@ __attribute__((__always_inline__)) static inline bool lookup_nexthop(struct xdp_
         break;
 
     case bpf_htons(ETH_P_IPV6):
+        if (!v6h)
+            return false;
+
         if (v6h->hop_limit <= 1)
             return false;
 
@@ -454,10 +454,10 @@ __attribute__((__always_inline__)) static inline int rewrite_nexthop(struct xdp_
     void *data_end = (void *)(long)xdp->data_end;
     struct ethhdr *eth = data;
 
-    if (data + sizeof(*eth) > data_end)
-    {
+    if (data + 1 > data_end)
         return XDP_PASS;
-    }
+
+    // bpf_printk("rewrite_nexthop");
 
     __u32 ifindex;
     __u8 smac[6], dmac[6];
@@ -466,18 +466,19 @@ __attribute__((__always_inline__)) static inline int rewrite_nexthop(struct xdp_
     if (is_exist)
     {
         set_src_dst_mac(data, &smac, &dmac);
+        // bpf_printk("lockup");
         if (!bpf_map_lookup_elem(&tx_port, &ifindex))
             return XDP_PASS;
 
         if (xdp->ingress_ifindex == ifindex)
         {
-            bpf_printk("run tx");
+            // bpf_printk("run tx");
             return XDP_TX;
         }
-        bpf_printk("go to redirect");
+        // bpf_printk("go to redirect");
         return bpf_redirect_map(&tx_port, ifindex, 0);
     }
-    bpf_printk("failed rewrite nhop");
+    // bpf_printk("failed rewrite nhop");
     return XDP_PASS;
 }
 
