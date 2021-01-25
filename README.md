@@ -1,6 +1,6 @@
 # Vinbero
 Vinbero is a very fast high-performance SRv6 implementation
-Vibero is about 3~5 Mpps in single flow, which is 2~3 times better performance than linux!
+Vibero is about 3-5 Mpps in single flow, which is 2-3 times better performance than linux!
 
 // TODO: I want a nice logo....
 
