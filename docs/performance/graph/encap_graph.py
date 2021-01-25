@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 sns.set()
 
+formatimage = "pdf"
 name = "T.Encap"
 vinbero_single = [5.53648128, 4.1209036800000005, 3.47078656, 3.2007782400000004, 2.89275904, 2.807827329438202]
 vinbero_multi = [70.02390528000001, 35.148267520000005, 17.53219072, 8.80541696, 4.40008704, 3.1556246723595502]
@@ -21,9 +22,8 @@ plt.bar(left, vinbero_single, color='r', width=width, align='center', label="vin
 plt.bar(left+width, linux_single, color='b', width=width, align='center', label="linux")
 
 plt.xticks(left + width/2, labels)
-plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=18)
-
-plt.show()
+plt.legend(loc="best")
+plt.savefig(f"./images/encap_single_flow.{formatimage}")
 
 
 left = np.arange(len(vinbero_multi))
@@ -35,5 +35,4 @@ plt.bar(left, vinbero_multi, color='r', width=width, align='center', label="vinb
 plt.bar(left+width, linux_multi, color='b', width=width, align='center', label="linux")
 
 plt.xticks(left + width/2, labels)
-plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=18)
-plt.show()
+plt.savefig(f"./images/encap_multi_flow.{formatimage}")
