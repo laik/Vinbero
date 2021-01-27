@@ -8,8 +8,6 @@ PKG_NAME=$(shell basename `pwd`)
 LDFLAGS := -ldflags="-s -w  -X \"github.com/takehaya/vinbero/pkg/version.Version=$(VERSION)\" -extldflags \"-static\""
 SRCS    := $(shell find . -type f -name '*.go')
 
-P4SRC   := "switch.p4"
-
 .DEFAULT_GOAL := build
 build: $(SRCS) gen
 	go build $(LDFLAGS) -o ./bin/$(NAME) ./cmd/$(NAME)

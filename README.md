@@ -123,11 +123,11 @@ See this for details: [vinbero.yml.sample](./vinbero.yml.sample)
 | End.S | | |
 | Args.Mob.Session | Done | Consider with End.MAP, End.DT and End.DX |
 | End.MAP | | |
-| End.M.GTP6.D | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit　|
-| End.M.GTP6.D.Di | Jan, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit |
-| End.M.GTP6.E | Jan, 2021 | SRv6 => GTP-U/IPv6 |
-| End.M.GTP4.E | partial Done | SRv6 => GTP-U/IPv4 gtpv1ext hdr is not supported. |
-| H.M.GTP4.D | partial Done | GTP-U/IPv4 => SRv6, Currently, gtpv1ext hdr is not supported. |
+| End.M.GTP6.D | Mar, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit　|
+| End.M.GTP6.D.Di | Mar, 2021 | GTP-U/IPv6 => SRv6, For implementation purposes, it is treated as transit |
+| End.M.GTP6.E | Mar, 2021 | SRv6 => GTP-U/IPv6 |
+| End.M.GTP4.E | partial Done, Mar, 2021 | SRv6 => GTP-U/IPv4 gtpv1ext hdr is not supported. |
+| H.M.GTP4.D | partial Done, Mar, 2021 | GTP-U/IPv4 => SRv6, Currently, gtpv1ext hdr is not supported. |
 | End.Limit | | Rate Limiting function |
 
 ### Non functional design items
