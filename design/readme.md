@@ -1,7 +1,7 @@
 # logo
 
 <div style="text-align:center;">
-<img src="./logo.png" style="height:auto;width:60vw;">
+<img src="./logo-100.jpg" style="height:auto;width:60vw;">
 </div>
 
 ## isolation

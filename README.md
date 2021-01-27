@@ -2,7 +2,7 @@
 Implementation of SRv6 subset written in XDP
 
 <div style="text-align:center;">
-<img src="./design/logo.png" style="height:auto;width:60vw;">
+<img src="./design/logo-100.jpg" style="height:auto;width:60vw;">
 </div>
 
 The goal of this project is to implement the basic functions of SRv6 so that users can enjoy network programming:)
