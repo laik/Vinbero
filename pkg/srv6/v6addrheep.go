@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"unsafe"
 
 	"github.com/pkg/errors"
 
@@ -47,40 +46,6 @@ func (m *V6addrHeepMap) Update(heep []*V6addrHeep, vkey int) error {
 		return errors.WithMessage(err, "Can't put v6addr map")
 	}
 	return nil
-}
-
-// func (m *V6addrHeepMap) Get(iface) (*TxPort, error) {
-// 	key := TxPortKey{Iface: iface}
-// 	entry := make([]TxPort, xdptool.PossibleCpus)
-// 	err := xdptool.LookupElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &entry[0], nil
-// }
-
-func (m *V6addrHeepMap) Delete(iface int) error {
-	key := TxPortKey{Iface: iface}
-	return xdptool.DeleteElement(m.FD, unsafe.Pointer(&key))
-}
-
-func (m *V6addrHeepMap) List() (map[TxPortKey]*TxPort, error) {
-	txptables := map[TxPortKey]*TxPort{}
-	var key, nextKey TxPortKey
-	for {
-		entry := make([]TxPort, xdptool.PossibleCpus)
-		err := xdptool.GetNextKey(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&nextKey))
-		if err != nil {
-			break
-		}
-		err = xdptool.LookupElement(m.FD, unsafe.Pointer(&nextKey), unsafe.Pointer(&entry[0]))
-		if err != nil {
-			return nil, fmt.Errorf("unable to lookup %s map: %s", STR_TXPort, err)
-		}
-		txptables[nextKey] = &entry[0]
-		key = nextKey
-	}
-	return txptables, nil
 }
 
 func (m *V6addrHeepMap) Pin() error {

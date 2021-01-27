@@ -1,11 +1,12 @@
 package srv6
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"unsafe"
+
+	"github.com/pkg/errors"
 
 	"github.com/cilium/ebpf"
 	"github.com/takehaya/vinbero/pkg/xdptool"
@@ -14,11 +15,11 @@ import (
 const MaxTxportDevice = 64
 
 type TxPortKey struct {
-	Iface int
+	Iface uint32
 }
 
 type TxPort struct {
-	Iface int
+	Iface uint32
 }
 
 type TxPortsMap struct {
@@ -46,47 +47,22 @@ func MappingTxPort(m *ebpf.Map) *TxPortsMap {
 }
 
 func (m *TxPortsMap) Update(txp TxPort, iface int) error {
-	entry := make([]TxPort, xdptool.PossibleCpus)
-	for i := 0; i < xdptool.PossibleCpus; i++ {
-		entry[i] = txp
-	}
+	key := TxPortKey{Iface: uint32(iface)}
 
-	key := TxPortKey{Iface: iface}
-	return xdptool.UpdateElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]), xdptool.BPF_ANY)
+	if err := m.Map.Put(key, txp); err != nil {
+		return errors.WithMessage(err, "Can't put function table map")
+	}
+	return nil
 }
 
 func (m *TxPortsMap) Get(iface int) (*TxPort, error) {
-	key := TxPortKey{Iface: iface}
+	key := TxPortKey{Iface: uint32(iface)}
 	entry := make([]TxPort, xdptool.PossibleCpus)
 	err := xdptool.LookupElement(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&entry[0]))
 	if err != nil {
 		return nil, err
 	}
 	return &entry[0], nil
-}
-
-func (m *TxPortsMap) Delete(iface int) error {
-	key := TxPortKey{Iface: iface}
-	return xdptool.DeleteElement(m.FD, unsafe.Pointer(&key))
-}
-
-func (m *TxPortsMap) List() (map[TxPortKey]*TxPort, error) {
-	txptables := map[TxPortKey]*TxPort{}
-	var key, nextKey TxPortKey
-	for {
-		entry := make([]TxPort, xdptool.PossibleCpus)
-		err := xdptool.GetNextKey(m.FD, unsafe.Pointer(&key), unsafe.Pointer(&nextKey))
-		if err != nil {
-			break
-		}
-		err = xdptool.LookupElement(m.FD, unsafe.Pointer(&nextKey), unsafe.Pointer(&entry[0]))
-		if err != nil {
-			return nil, fmt.Errorf("unable to lookup %s map: %s", STR_TXPort, err)
-		}
-		txptables[nextKey] = &entry[0]
-		key = nextKey
-	}
-	return txptables, nil
 }
 
 func (m *TxPortsMap) Pin() error {
