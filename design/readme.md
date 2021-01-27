@@ -1,5 +1,9 @@
 # logo
 
+<div style="text-align:center;">
+<img src="./logo.png" style="height:auto;width:60vw;">
+</div>
+
 ## isolation
 ![iso](./iso.png)
 
