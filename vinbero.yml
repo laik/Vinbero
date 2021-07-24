@@ -3,8 +3,8 @@ internal:
   logfile: "./vinbero.log"
   development: false
   devices:
-    - ens4f0
-    - ens4f1
+    - eth0
+    # - ens4f1
 settings:
   # functions:
   #   - action: SEG6_LOCAL_ACTION_END_DX4
