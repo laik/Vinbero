@@ -60,7 +60,7 @@ func Seg6LocalFlaverInt(name string) (uint32, error) {
 		return SEG6_LOCAL_FLAVER_USD, nil
 	}
 
-	return 0, fmt.Errorf("%d action not match", name)
+	return 0, fmt.Errorf("%s action not match", name)
 }
 
 // seg6local actions

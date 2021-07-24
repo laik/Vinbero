@@ -69,5 +69,5 @@ func Seg6EncapModeInt(name string) (uint32, error) {
 	case "SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D":
 		return SEG6_IPTUN_MODE_ENCAP_H_M_GTP4_D, nil
 	}
-	return 0, fmt.Errorf("%d action not match", name)
+	return 0, fmt.Errorf("%s action not match", name)
 }

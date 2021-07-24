@@ -22,7 +22,7 @@ type V6addrHeepMap struct {
 }
 
 func NewV6addrHeep(coll *ebpf.Collection) (*V6addrHeepMap, error) {
-	log.Println("%v", coll)
+	log.Printf("%v\r\n", coll)
 	m, ok := coll.Maps[STR_V6addrHeep]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("%v not found", STR_V6addrHeep))

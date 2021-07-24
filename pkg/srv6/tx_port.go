@@ -28,7 +28,7 @@ type TxPortsMap struct {
 }
 
 func NewTxPort(coll *ebpf.Collection) (*TxPortsMap, error) {
-	log.Println("%v", coll)
+	log.Printf("%v\r\n", coll)
 	m, ok := coll.Maps[STR_TXPort]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("%v not found", STR_TXPort))
