@@ -18,7 +18,7 @@ func client(listen, peer, subscriber, ote, ite string) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	raddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("$v:2152", peer))
+	raddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%v:2152", peer))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -26,6 +26,9 @@ func client(listen, peer, subscriber, ote, ite string) error {
 	defer cancel()
 
 	uConn, err := gtpv1.DialUPlane(ctx, addr, raddr)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 	defer uConn.Close()
 
 	if err := uConn.EnableKernelGTP("gtp0", gtpv1.RoleSGSN); err != nil {
